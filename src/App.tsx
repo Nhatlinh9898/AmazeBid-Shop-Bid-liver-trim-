@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2, Search, LayoutGrid, Plus } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2, Search, LayoutGrid, Plus, BarChart3, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Float, MeshWobbleMaterial, Sparkles, Environment, useGLTF, Stage, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // --- Components ---
 
@@ -57,7 +58,7 @@ const ElementalEffects = ({ element, color }: { element: ElementType; color: str
   );
 };
 
-const DetailModal = ({ isOpen, onClose, content }: { isOpen: boolean; onClose: () => void; content: ProductContent }) => {
+const DetailModal = ({ isOpen, onClose, content, onBuy, isOwned }: { isOpen: boolean; onClose: () => void; content: ProductContent; onBuy: (p: ProductContent) => void; isOwned: boolean }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -150,6 +151,34 @@ const DetailModal = ({ isOpen, onClose, content }: { isOpen: boolean; onClose: (
                     ))}
                   </div>
                 </section>
+
+                <div className="pt-8 border-t border-white/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Giá Niêm Yết</p>
+                    <p className="text-3xl font-black text-white">{content.productDetails.price}</p>
+                  </div>
+                  <button 
+                    disabled={isOwned}
+                    onClick={() => onBuy(content)}
+                    className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 ${
+                      isOwned 
+                        ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
+                        : 'bg-white text-black hover:bg-white/90'
+                    }`}
+                  >
+                    {isOwned ? (
+                      <>
+                        <CheckCircle2 size={16} />
+                        Đã Sở Hữu
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={16} />
+                        Mua Ngay
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -548,7 +577,7 @@ const Product3DViewer = ({ type, color, modelUrl }: { type: ProductType; color: 
   );
 };
 
-const XianxiaDisplay = ({ content, isActive }: { content: ProductContent; isActive: boolean }) => {
+const XianxiaDisplay = ({ content, isActive, onBuy, isOwned }: { content: ProductContent; isActive: boolean; onBuy: (p: ProductContent) => void; isOwned: boolean }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [show3D, setShow3D] = useState(false);
@@ -846,9 +875,24 @@ const XianxiaDisplay = ({ content, isActive }: { content: ProductContent; isActi
 
               {/* Action Bar */}
               <div className="flex gap-4 pt-2">
-                <button className="flex-[2.5] py-4 rounded-2xl font-black text-xs lg:text-sm tracking-[0.2em] uppercase transition-all active:scale-95 hover:-translate-y-1 shadow-2xl"
-                        style={{ backgroundColor: content.themeColor, color: '#000' }}>
-                  Sở Hữu Ngay
+                <button 
+                  disabled={isOwned}
+                  onClick={() => onBuy(content)}
+                  className={`flex-[2.5] py-4 rounded-2xl font-black text-xs lg:text-sm tracking-[0.2em] uppercase transition-all active:scale-95 hover:-translate-y-1 shadow-2xl flex items-center justify-center gap-2 ${
+                    isOwned 
+                      ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20' 
+                      : 'bg-white text-black hover:bg-white/90'
+                  }`}
+                  style={!isOwned ? { backgroundColor: content.themeColor, color: '#000' } : {}}
+                >
+                  {isOwned ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Đã Sở Hữu
+                    </>
+                  ) : (
+                    'Sở Hữu Ngay'
+                  )}
                 </button>
                 <button 
                   onClick={() => setIsModalOpen(true)}
@@ -863,7 +907,13 @@ const XianxiaDisplay = ({ content, isActive }: { content: ProductContent; isActi
       </div>
 
       {/* Detail Modal */}
-      <DetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} content={content} />
+      <DetailModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        content={content} 
+        onBuy={onBuy}
+        isOwned={isOwned}
+      />
 
       {/* Global Controls */}
       <div className="absolute bottom-10 left-10 flex gap-5 z-50">
@@ -1101,14 +1151,146 @@ const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClo
   );
 };
 
+const StatsModal = ({ isOpen, onClose, products }: { isOpen: boolean; onClose: () => void; products: ProductContent[] }) => {
+  const rarityCounts = products.reduce((acc, p) => {
+    acc[p.rarity] = (acc[p.rarity] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const data = [
+    { name: 'Thường', count: rarityCounts['Thường'] || 0, color: '#94a3b8' },
+    { name: 'Hiếm', count: rarityCounts['Hiếm'] || 0, color: '#10b981' },
+    { name: 'Cực Hiếm', count: rarityCounts['Cực Hiếm'] || 0, color: '#3b82f6' },
+    { name: 'Sử Thi', count: rarityCounts['Sử Thi'] || 0, color: '#a855f7' },
+    { name: 'Huyền Thoại', count: rarityCounts['Huyền Thoại'] || 0, color: '#f59e0b' },
+    { name: 'Thần Thoại', count: rarityCounts['Thần Thoại'] || 0, color: '#ef4444' },
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="relative w-full max-w-3xl bg-slate-900 border border-white/10 rounded-[40px] p-10 shadow-2xl"
+          >
+            <div className="flex justify-between items-center mb-10">
+              <div>
+                <h3 className="text-3xl font-bold text-white">Thống Kê Thị Trường</h3>
+                <p className="text-white/40 text-sm mt-1">Phân bổ độ hiếm của {products.length} vật phẩm</p>
+              </div>
+              <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                    itemStyle={{ color: '#fff', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mt-10">
+              {data.map((item) => (
+                <div key={item.name} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: item.color }}>{item.name}</p>
+                  <p className="text-2xl font-black text-white mt-1">{item.count}</p>
+                  <p className="text-[10px] text-white/20 mt-1">{((item.count / products.length) * 100).toFixed(1)}%</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const MyCollectionModal = ({ isOpen, onClose, collection }: { isOpen: boolean; onClose: () => void; collection: ProductContent[] }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="relative w-full max-w-5xl h-[80vh] bg-slate-900 border border-white/10 rounded-[48px] overflow-hidden flex flex-col shadow-2xl"
+          >
+            <div className="p-10 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-3xl font-bold text-white">Bộ Sưu Tập Của Tôi</h3>
+                <p className="text-white/40 text-sm mt-1">Bạn đang sở hữu {collection.length} vật phẩm quý giá</p>
+              </div>
+              <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-10">
+              {collection.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                  <ShoppingBag size={64} className="mb-4" />
+                  <p className="text-xl font-bold">Chưa có vật phẩm nào</p>
+                  <p className="text-sm mt-2">Hãy khám phá thị trường và sở hữu những vật phẩm đầu tiên!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {collection.map((item) => (
+                    <div key={item.id} className="group">
+                      <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/10 bg-black/40 mb-3">
+                        <img src={item.fallbackImg} className="w-full h-full object-cover" alt={item.title} referrerPolicy="no-referrer" />
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border" style={{ borderColor: item.rarityColor, color: item.rarityColor, backgroundColor: `${item.rarityColor}20` }}>
+                            {item.rarity}
+                          </span>
+                        </div>
+                      </div>
+                      <h4 className="text-white font-bold text-sm truncate">{item.title}</h4>
+                      <p className="text-white/40 text-[10px] uppercase tracking-widest mt-1">{item.type}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export default function App() {
-  const [products, setProducts] = useState<ProductContent[]>(CONTENT_DATA);
+  const [products, setProducts] = useState<ProductContent[]>([]);
+  const [collection, setCollection] = useState<ProductContent[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState<ProductType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showGrid, setShowGrid] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setProducts(generateProducts(1000));
+  }, []);
 
   const filteredData = products.filter(item => {
     const matchesCategory = activeCategory === 'all' || item.type === activeCategory;
@@ -1119,8 +1301,13 @@ export default function App() {
   const handleAddProduct = (newProduct: ProductContent) => {
     setProducts([newProduct, ...products]);
     setActiveIndex(0);
-    // Scroll to top
     containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBuy = (product: ProductContent) => {
+    if (!collection.find(p => p.id === product.id)) {
+      setCollection([product, ...collection]);
+    }
   };
 
   const scrollToProduct = (index: number) => {
@@ -1188,22 +1375,54 @@ export default function App() {
         <button 
           onClick={() => setShowGrid(!showGrid)}
           className="w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
+          title="Thư viện"
         >
           {showGrid ? <X size={18} /> : <LayoutGrid size={18} />}
         </button>
         <button 
           onClick={() => setShowCreateModal(true)}
           className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-white/90 transition-all shadow-2xl"
+          title="Thêm mới"
         >
           <Plus size={18} />
         </button>
+        <div className="w-px h-6 bg-white/10 mx-1" />
+        <button 
+          onClick={() => setShowStatsModal(true)}
+          className="w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
+          title="Thống kê"
+        >
+          <BarChart3 size={18} />
+        </button>
+        <button 
+          onClick={() => setShowCollectionModal(true)}
+          className="relative w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
+          title="Bộ sưu tập"
+        >
+          <ShoppingBag size={18} />
+          {collection.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-500 rounded-full text-[8px] font-black flex items-center justify-center text-black">
+              {collection.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Create Product Modal */}
+      {/* Modals */}
       <CreateProductModal 
         isOpen={showCreateModal} 
         onClose={() => setShowCreateModal(false)} 
         onAdd={handleAddProduct} 
+      />
+      <StatsModal 
+        isOpen={showStatsModal} 
+        onClose={() => setShowStatsModal(false)} 
+        products={products} 
+      />
+      <MyCollectionModal 
+        isOpen={showCollectionModal} 
+        onClose={() => setShowCollectionModal(false)} 
+        collection={collection} 
       />
 
       {/* Grid View Overlay */}
@@ -1285,7 +1504,12 @@ export default function App() {
       >
         {filteredData.map((content, index) => (
           <div key={content.id} data-index={index} className="w-full h-full snap-start flex-shrink-0">
-            <XianxiaDisplay content={content} isActive={index === activeIndex} />
+            <XianxiaDisplay 
+              content={content} 
+              isActive={index === activeIndex} 
+              onBuy={handleBuy}
+              isOwned={!!collection.find(p => p.id === content.id)}
+            />
           </div>
         ))}
         
