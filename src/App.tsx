@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2 } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2, Search, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Float, MeshWobbleMaterial, Sparkles, Environment, useGLTF, Stage, PresentationControls } from '@react-three/drei';
@@ -151,7 +151,7 @@ const DetailModal = ({ isOpen, onClose, content }: { isOpen: boolean; onClose: (
   );
 };
 
-type ProductType = 'xianxia' | 'tech' | 'luxury';
+type ProductType = 'xianxia' | 'tech' | 'luxury' | 'fashion' | 'automotive' | 'home' | 'electronics' | 'sports' | 'beauty' | 'food';
 type ElementType = 'lightning' | 'fire' | 'ice' | 'neon' | 'gold' | 'minimal';
 
 interface ProductContent {
@@ -183,119 +183,158 @@ interface ProductContent {
   };
 }
 
-const CONTENT_DATA: ProductContent[] = [
-  {
-    id: 1,
-    type: 'xianxia',
-    title: "Lôi Đình Vạn Quân Đao",
-    subtitles: "Cửu thiên lôi đình, nghe ta hiệu lệnh!",
-    bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    productVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    fallbackImg: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1000",
-    themeColor: "#22d3ee",
-    element: 'lightning',
-    kolInfo: {
-      name: "Linh Nhi Tiên Tử",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
-      status: "Đang Livestream",
-      followers: "1.2M Đạo Hữu"
-    },
-    reviews: [
-      { user: "Thanh Vân Đạo Nhân", comment: "Đao khí bức người, lôi quang lấp lánh!", rating: 5 },
-      { user: "Kiếm Ma", comment: "Tốc độ xuất đao cực nhanh.", rating: 4 }
-    ],
-    lore: "Được rèn từ mảnh vỡ của Thiên Lôi Thạch rơi xuống từ Cửu Trọng Thiên. Trải qua vạn năm hấp thụ tinh hoa sấm sét.",
-    materials: ["Thiên Lôi Thạch", "Vạn Năm Hàn Thiết", "Long Huyết"],
-    hiddenStats: [
-      { label: "Tỉ lệ bạo kích", value: "+25%" },
-      { label: "Sát thương lôi", value: "+500" }
-    ],
-    productDetails: {
-      price: "8,888 Linh Thạch",
-      description: "Thần khí thượng cổ, chứa đựng sức mạnh của cửu thiên lôi đình. Người sở hữu có thể hô phong hoán vũ.",
-      stats: [
-        { label: "Công Kích", value: "999+" },
-        { label: "Tốc Độ", value: "S" },
-        { label: "Phẩm Cấp", value: "Thần Giai" }
-      ]
-    }
-  },
-  {
-    id: 2,
-    type: 'tech',
-    title: "Cyber Katana X-2077",
-    subtitles: "Neon pulse, cutting through the digital void.",
-    bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    productVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    fallbackImg: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1000",
-    themeColor: "#f0abfc",
-    element: 'neon',
-    kolInfo: {
-      name: "Cyber Ghost",
-      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150",
-      status: "Đang Livestream",
-      followers: "2.4M Hackers"
-    },
-    reviews: [
-      { user: "NetRunner", comment: "The latency is zero. Perfect for deep dives.", rating: 5 },
-      { user: "StreetSam", comment: "Cuts through chrome like butter.", rating: 5 }
-    ],
-    lore: "Forged in the underground labs of Neo-Tokyo. This blade uses high-frequency vibrations to split atoms.",
-    materials: ["Carbon Fiber", "Plasma Core", "Nanobots"],
-    hiddenStats: [
-      { label: "Hacking Speed", value: "+40%" },
-      { label: "Stealth Mode", value: "Active" }
-    ],
-    productDetails: {
-      price: "$15,000 Credits",
-      description: "The ultimate weapon for the urban mercenary. Lightweight, deadly, and fully integrated with your neural link.",
-      stats: [
-        { label: "Frequency", value: "500GHz" },
-        { label: "Weight", value: "0.8kg" },
-        { label: "Battery", value: "48h" }
-      ]
-    }
-  },
-  {
-    id: 3,
-    type: 'luxury',
-    title: "Royal Chrono Gold",
-    subtitles: "Time is the ultimate luxury.",
-    bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-    characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    productVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    fallbackImg: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=1000",
-    themeColor: "#fbbf24",
-    element: 'gold',
-    kolInfo: {
-      name: "Lord Hamilton",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
-      status: "Ngoại Tuyến",
-      followers: "500K Collectors"
-    },
-    reviews: [
-      { user: "WatchEnthusiast", comment: "The craftsmanship is unparalleled.", rating: 5 },
-      { user: "CEO_Vibe", comment: "A statement piece for every meeting.", rating: 5 }
-    ],
-    lore: "Handcrafted by master watchmakers in the Swiss Alps. Only 10 pieces exist in the world.",
-    materials: ["18K Gold", "Sapphire Crystal", "Diamond Studs"],
-    hiddenStats: [
-      { label: "Resale Value", value: "High" },
-      { label: "Precision", value: "0.001s" }
-    ],
-    productDetails: {
-      price: "$250,000 USD",
-      description: "A masterpiece of engineering and art. This timepiece represents the pinnacle of human achievement in horology.",
-      stats: [
-        { label: "Movement", value: "Auto" },
-        { label: "Waterproof", value: "100m" },
-        { label: "Jewels", value: "32" }
-      ]
+const generateProducts = (count: number): ProductContent[] => {
+  const products: ProductContent[] = [];
+  const types: ProductType[] = [
+    'xianxia', 'tech', 'luxury', 'fashion', 'automotive', 
+    'home', 'electronics', 'sports', 'beauty', 'food'
+  ];
+  const elements: ElementType[] = ['lightning', 'fire', 'ice', 'neon', 'gold', 'minimal'];
+  
+  for (let i = 1; i <= count; i++) {
+    const type = types[i % types.length];
+    const element = elements[i % elements.length];
+    
+    const baseProduct = {
+      id: i,
+      type,
+      element,
+      bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      productVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      fallbackImg: `https://picsum.photos/seed/${type}${i}/1000/1000`,
+      reviews: [
+        { user: `Khách hàng ${i}`, comment: "Sản phẩm tuyệt vời, rất đáng tiền!", rating: 5 },
+        { user: `Người dùng ${i+1}`, comment: "Chất lượng tốt, giao hàng nhanh.", rating: 4 }
+      ],
+    };
+
+    if (type === 'xianxia') {
+      products.push({
+        ...baseProduct,
+        title: `Pháp Bảo ${i}: ${['Thanh Long', 'Bạch Hổ', 'Chu Tước', 'Huyền Vũ', 'Thiên Ma'][i % 5]} Kiếm`,
+        subtitles: `Sức mạnh của ${['Cửu Thiên', 'U Minh', 'Thái Cổ', 'Hỗn Độn'][i % 4]} đang chờ đợi bạn!`,
+        themeColor: "#22d3ee",
+        kolInfo: { name: `Tu Tiên Giả ${i}`, avatar: `https://i.pravatar.cc/150?u=xianxia${i}`, status: i % 3 === 0 ? "Đang Livestream" : "Ngoại Tuyến", followers: `${(Math.random() * 5).toFixed(1)}M Đạo Hữu` },
+        lore: `Pháp bảo được rèn từ ${i * 100} năm trước tại đỉnh núi ${['Trường Sinh', 'Thiên Sơn', 'Côn Lôn'][i % 3]}.`,
+        materials: ["Linh Thạch", "Huyền Thiết", "Long Huyết"],
+        hiddenStats: [{ label: "Linh Lực", value: `+${i * 10}` }, { label: "Tốc Độ", value: `+${i * 5}` }],
+        productDetails: { price: `${(i * 100).toLocaleString()} Linh Thạch`, description: `Vũ khí bậc nhất dành cho các đạo hữu đang tìm kiếm sự đột phá trong tu hành.`, stats: [{ label: "Công Kích", value: `${500 + i * 5}` }, { label: "Phòng Thủ", value: `${200 + i * 2}` }, { label: "Phẩm Cấp", value: i > 800 ? "Thần Giai" : "Địa Giai" }] }
+      });
+    } else if (type === 'tech') {
+      products.push({
+        ...baseProduct,
+        title: `Cyber Device ${i}: ${['Neural', 'Plasma', 'Quantum', 'Void'][i % 4]} Blade`,
+        subtitles: `Upgrade your reality with version ${i}.0.`,
+        themeColor: "#f0abfc",
+        kolInfo: { name: `NetRunner_${i}`, avatar: `https://i.pravatar.cc/150?u=tech${i}`, status: i % 2 === 0 ? "Đang Livestream" : "Ngoại Tuyến", followers: `${(Math.random() * 10).toFixed(1)}M Hackers` },
+        lore: `Developed in the labs of ${['Sector 7', 'Neo-Silicon', 'The Grid'][i % 3]}.`,
+        materials: ["Graphene", "Liquid Metal", "AI Core"],
+        hiddenStats: [{ label: "Processing", value: `${i * 10} TFLOPS` }, { label: "Latency", value: "0.1ms" }],
+        productDetails: { price: `$${(i * 500).toLocaleString()} Credits`, description: `The next generation of tactical gear for the digital age.`, stats: [{ label: "Speed", value: "Mach 2" }, { label: "Durability", value: "99%" }, { label: "Battery", value: "100h" }] }
+      });
+    } else if (type === 'luxury') {
+      products.push({
+        ...baseProduct,
+        title: `Luxury Item ${i}: ${['Diamond', 'Emerald', 'Ruby', 'Sapphire'][i % 4]} Edition`,
+        subtitles: `Exclusivity redefined for the elite.`,
+        themeColor: "#fbbf24",
+        kolInfo: { name: `Collector_${i}`, avatar: `https://i.pravatar.cc/150?u=luxury${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 2).toFixed(1)}M Collectors` },
+        lore: `A timeless piece passed down through generations of the ${['Royal', 'Imperial', 'Noble'][i % 3]} family.`,
+        materials: ["18K Gold", "Rare Gems", "Silk"],
+        hiddenStats: [{ label: "Rarity", value: "1 of 1000" }, { label: "Craftsmanship", value: "Master" }],
+        productDetails: { price: `$${(i * 2000).toLocaleString()} USD`, description: `A symbol of status and elegance that transcends time.`, stats: [{ label: "Weight", value: "150g" }, { label: "Purity", value: "24K" }, { label: "Warranty", value: "Lifetime" }] }
+      });
+    } else if (type === 'fashion') {
+      products.push({
+        ...baseProduct,
+        title: `Fashion ${i}: ${['Vogue', 'Urban', 'Classic', 'Avant'][i % 4]} Collection`,
+        subtitles: `Wear your identity.`,
+        themeColor: "#ec4899",
+        kolInfo: { name: `Model_${i}`, avatar: `https://i.pravatar.cc/150?u=fashion${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 3).toFixed(1)}M Fans` },
+        lore: `Designed by the world's leading fashion icons.`,
+        materials: ["Organic Cotton", "Recycled Polyester", "Silk"],
+        hiddenStats: [{ label: "Style Score", value: "99/100" }, { label: "Comfort", value: "Max" }],
+        productDetails: { price: `$${(i * 150).toLocaleString()}`, description: `A perfect blend of comfort and high-end fashion.`, stats: [{ label: "Size", value: "All" }, { label: "Color", value: "Multi" }, { label: "Season", value: "SS26" }] }
+      });
+    } else if (type === 'automotive') {
+      products.push({
+        ...baseProduct,
+        title: `Vehicle ${i}: ${['Speedster', 'SUV', 'Electric', 'Hyper'][i % 4]} X`,
+        subtitles: `The future of mobility.`,
+        themeColor: "#ef4444",
+        kolInfo: { name: `Driver_${i}`, avatar: `https://i.pravatar.cc/150?u=auto${i}`, status: "Đang Livestream", followers: `${(Math.random() * 5).toFixed(1)}M Racers` },
+        lore: `Engineered for performance and sustainability.`,
+        materials: ["Aluminum", "Carbon Fiber", "Lithium"],
+        hiddenStats: [{ label: "0-100km/h", value: `${(2 + Math.random() * 3).toFixed(1)}s` }, { label: "Range", value: "600km" }],
+        productDetails: { price: `$${(i * 10000).toLocaleString()}`, description: `Experience the thrill of the open road with cutting-edge technology.`, stats: [{ label: "Horsepower", value: "800hp" }, { label: "Top Speed", value: "320km/h" }, { label: "Autopilot", value: "v5.0" }] }
+      });
+    } else if (type === 'home') {
+      products.push({
+        ...baseProduct,
+        title: `Home ${i}: ${['Minimalist', 'Modern', 'Vintage', 'Smart'][i % 4]} Sofa`,
+        subtitles: `Transform your living space.`,
+        themeColor: "#10b981",
+        kolInfo: { name: `Designer_${i}`, avatar: `https://i.pravatar.cc/150?u=home${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 1).toFixed(1)}M Homeowners` },
+        lore: `Crafted for comfort and aesthetic appeal.`,
+        materials: ["Oak Wood", "Velvet", "Memory Foam"],
+        hiddenStats: [{ label: "Durability", value: "20 Years" }, { label: "Eco-friendly", value: "Yes" }],
+        productDetails: { price: `$${(i * 300).toLocaleString()}`, description: `High-quality furniture that brings elegance to any room.`, stats: [{ label: "Material", value: "Premium" }, { label: "Warranty", value: "5 Years" }, { label: "Assembly", value: "Easy" }] }
+      });
+    } else if (type === 'electronics') {
+      products.push({
+        ...baseProduct,
+        title: `Gadget ${i}: ${['Smartphone', 'Laptop', 'Tablet', 'Watch'][i % 4]} Pro`,
+        subtitles: `Power in your hands.`,
+        themeColor: "#3b82f6",
+        kolInfo: { name: `Techie_${i}`, avatar: `https://i.pravatar.cc/150?u=elec${i}`, status: "Đang Livestream", followers: `${(Math.random() * 8).toFixed(1)}M Techies` },
+        lore: `The latest in consumer electronics technology.`,
+        materials: ["Glass", "Aluminum", "Silicon"],
+        hiddenStats: [{ label: "Display", value: "OLED 120Hz" }, { label: "CPU", value: "M4 Chip" }],
+        productDetails: { price: `$${(i * 200).toLocaleString()}`, description: `Stay connected and productive with our latest electronic devices.`, stats: [{ label: "Storage", value: "1TB" }, { label: "RAM", value: "16GB" }, { label: "Battery", value: "24h" }] }
+      });
+    } else if (type === 'sports') {
+      products.push({
+        ...baseProduct,
+        title: `Sports ${i}: ${['Running', 'Basketball', 'Tennis', 'Gym'][i % 4]} Gear`,
+        subtitles: `Push your limits.`,
+        themeColor: "#f59e0b",
+        kolInfo: { name: `Athlete_${i}`, avatar: `https://i.pravatar.cc/150?u=sports${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 4).toFixed(1)}M Athletes` },
+        lore: `Designed for peak performance and injury prevention.`,
+        materials: ["Breathable Mesh", "Rubber", "Synthetic"],
+        hiddenStats: [{ label: "Performance Boost", value: "+15%" }, { label: "Weight", value: "Light" }],
+        productDetails: { price: `$${(i * 50).toLocaleString()}`, description: `Professional-grade sports equipment for every athlete.`, stats: [{ label: "Grip", value: "High" }, { label: "Breathability", value: "Max" }, { label: "Flexibility", value: "High" }] }
+      });
+    } else if (type === 'beauty') {
+      products.push({
+        ...baseProduct,
+        title: `Beauty ${i}: ${['Skincare', 'Makeup', 'Fragrance', 'Haircare'][i % 4]} Set`,
+        subtitles: `Radiate confidence.`,
+        themeColor: "#d946ef",
+        kolInfo: { name: `Guru_${i}`, avatar: `https://i.pravatar.cc/150?u=beauty${i}`, status: "Đang Livestream", followers: `${(Math.random() * 6).toFixed(1)}M Beauties` },
+        lore: `Formulated with natural ingredients for all skin types.`,
+        materials: ["Aloe Vera", "Vitamin C", "Essential Oils"],
+        hiddenStats: [{ label: "Natural", value: "100%" }, { label: "Cruelty-free", value: "Yes" }],
+        productDetails: { price: `$${(i * 40).toLocaleString()}`, description: `Enhance your natural beauty with our premium skincare and makeup products.`, stats: [{ label: "Volume", value: "100ml" }, { label: "Type", value: "Organic" }, { label: "SPF", value: "50+" }] }
+      });
+    } else {
+      products.push({
+        ...baseProduct,
+        title: `Food ${i}: ${['Gourmet', 'Organic', 'Snack', 'Beverage'][i % 4]} Box`,
+        subtitles: `A taste of perfection.`,
+        themeColor: "#84cc16",
+        kolInfo: { name: `Chef_${i}`, avatar: `https://i.pravatar.cc/150?u=food${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 2).toFixed(1)}M Foodies` },
+        lore: `Sourced from the finest organic farms around the world.`,
+        materials: ["Organic Grains", "Fresh Fruits", "Natural Spices"],
+        hiddenStats: [{ label: "Calories", value: "Low" }, { label: "Nutrients", value: "High" }],
+        productDetails: { price: `$${(i * 20).toLocaleString()}`, description: `Delicious and healthy food options for every meal.`, stats: [{ label: "Weight", value: "500g" }, { label: "Shelf Life", value: "6 Months" }, { label: "Vegan", value: "Yes" }] }
+      });
     }
   }
-];
+  return products;
+};
+
+const CONTENT_DATA: ProductContent[] = generateProducts(1000);
 
 // --- 3D Models ---
 
@@ -898,11 +937,23 @@ const CategorySelector = ({
 export default function App() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState<ProductType | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showGrid, setShowGrid] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filteredData = activeCategory === 'all' 
-    ? CONTENT_DATA 
-    : CONTENT_DATA.filter(item => item.type === activeCategory);
+  const filteredData = CONTENT_DATA.filter(item => {
+    const matchesCategory = activeCategory === 'all' || item.type === activeCategory;
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const scrollToProduct = (index: number) => {
+    const elements = containerRef.current?.querySelectorAll('.snap-start');
+    if (elements && elements[index]) {
+      elements[index].scrollIntoView({ behavior: 'smooth' });
+      setShowGrid(false);
+    }
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -928,6 +979,13 @@ export default function App() {
     { id: 'xianxia', label: 'Tiên Hiệp' },
     { id: 'tech', label: 'Công Nghệ' },
     { id: 'luxury', label: 'Xa Xỉ' },
+    { id: 'fashion', label: 'Thời Trang' },
+    { id: 'automotive', label: 'Ô Tô' },
+    { id: 'home', label: 'Nội Thất' },
+    { id: 'electronics', label: 'Điện Tử' },
+    { id: 'sports', label: 'Thể Thao' },
+    { id: 'beauty', label: 'Làm Đẹp' },
+    { id: 'food', label: 'Ẩm Thực' },
   ];
 
   return (
@@ -938,6 +996,84 @@ export default function App() {
         activeCategory={activeCategory} 
         setActiveCategory={setActiveCategory} 
       />
+
+      {/* Search & Grid Toggle */}
+      <div className="absolute top-8 right-10 z-[60] flex items-center gap-4">
+        <div className="relative hidden sm:block">
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm sản phẩm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-6 py-2.5 text-xs text-white focus:outline-none focus:border-white/40 transition-all w-[200px] lg:w-[300px]"
+          />
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" size={14} />
+        </div>
+        <button 
+          onClick={() => setShowGrid(!showGrid)}
+          className="w-12 h-12 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
+        >
+          {showGrid ? <X size={20} /> : <LayoutGrid size={20} />}
+        </button>
+      </div>
+
+      {/* Grid View Overlay */}
+      <AnimatePresence>
+        {showGrid && (
+          <motion.div
+            initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+            animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
+            exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-6 lg:p-20"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-6xl h-full bg-slate-900/40 rounded-[48px] border border-white/10 overflow-hidden flex flex-col"
+            >
+              <div className="p-8 border-b border-white/10 flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold tracking-tight">Kho Hàng ({filteredData.length})</h2>
+                  <p className="text-white/40 text-sm mt-1">Chọn một sản phẩm để xem chi tiết</p>
+                </div>
+                <button 
+                  onClick={() => setShowGrid(false)}
+                  className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {filteredData.map((item, idx) => (
+                  <motion.div
+                    key={item.id}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    onClick={() => scrollToProduct(idx)}
+                    className="group cursor-pointer"
+                  >
+                    <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/10 bg-black/40 mb-3">
+                      <img 
+                        src={item.fallbackImg} 
+                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-500"
+                        alt={item.title}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all" />
+                      <div className="absolute bottom-4 left-4 right-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all">
+                        <p className="text-[10px] font-black text-white uppercase tracking-widest">{item.productDetails.price}</p>
+                      </div>
+                    </div>
+                    <h4 className="text-white font-bold text-sm truncate px-1">{item.title}</h4>
+                    <p className="text-white/40 text-[10px] uppercase tracking-widest px-1 mt-1">{item.type}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Background Ambient Glow */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
