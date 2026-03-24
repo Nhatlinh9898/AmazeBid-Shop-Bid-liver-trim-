@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2, Search, LayoutGrid } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, ChevronLeft, ChevronRight, X, Star, Zap, Flame, Snowflake, Ghost, Box, Maximize2, Search, LayoutGrid, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Float, MeshWobbleMaterial, Sparkles, Environment, useGLTF, Stage, PresentationControls } from '@react-three/drei';
@@ -82,7 +82,15 @@ const DetailModal = ({ isOpen, onClose, content }: { isOpen: boolean; onClose: (
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6">
                 <h3 className="text-2xl font-bold text-white">{content.title}</h3>
-                <p className="text-cyan-400 font-black text-xs tracking-widest uppercase mt-1">{content.element} Element</p>
+                <div className="flex items-center gap-4">
+                  <span 
+                    className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                    style={{ borderColor: content.rarityColor, color: content.rarityColor, backgroundColor: `${content.rarityColor}10` }}
+                  >
+                    {content.rarity}
+                  </span>
+                  <p className="text-cyan-400 font-black text-xs tracking-widest uppercase mt-1">{content.element} Element</p>
+                </div>
               </div>
             </div>
 
@@ -153,10 +161,13 @@ const DetailModal = ({ isOpen, onClose, content }: { isOpen: boolean; onClose: (
 
 type ProductType = 'xianxia' | 'tech' | 'luxury' | 'fashion' | 'automotive' | 'home' | 'electronics' | 'sports' | 'beauty' | 'food';
 type ElementType = 'lightning' | 'fire' | 'ice' | 'neon' | 'gold' | 'minimal';
+type RarityType = 'Thường' | 'Hiếm' | 'Cực Hiếm' | 'Sử Thi' | 'Huyền Thoại' | 'Thần Thoại';
 
 interface ProductContent {
   id: number;
   type: ProductType;
+  rarity: RarityType;
+  rarityColor: string;
   title: string;
   subtitles: string;
   bgVideoUrl: string;
@@ -183,6 +194,17 @@ interface ProductContent {
   };
 }
 
+const getRarityInfo = (index: number, total: number): { rarity: RarityType; color: string; multiplier: number } => {
+  const rand = (index * 1337) % 1000; // Deterministic pseudo-random for consistency
+  
+  if (rand < 1) return { rarity: 'Thần Thoại', color: '#ef4444', multiplier: 5000 }; // 0.1%
+  if (rand < 10) return { rarity: 'Huyền Thoại', color: '#f59e0b', multiplier: 500 }; // 0.9%
+  if (rand < 50) return { rarity: 'Sử Thi', color: '#a855f7', multiplier: 50 }; // 4%
+  if (rand < 150) return { rarity: 'Cực Hiếm', color: '#3b82f6', multiplier: 10 }; // 10%
+  if (rand < 400) return { rarity: 'Hiếm', color: '#10b981', multiplier: 2.5 }; // 25%
+  return { rarity: 'Thường', color: '#94a3b8', multiplier: 1 }; // 60%
+};
+
 const generateProducts = (count: number): ProductContent[] => {
   const products: ProductContent[] = [];
   const types: ProductType[] = [
@@ -194,10 +216,13 @@ const generateProducts = (count: number): ProductContent[] => {
   for (let i = 1; i <= count; i++) {
     const type = types[i % types.length];
     const element = elements[i % elements.length];
+    const rarityInfo = getRarityInfo(i, count);
     
     const baseProduct = {
       id: i,
       type,
+      rarity: rarityInfo.rarity,
+      rarityColor: rarityInfo.color,
       element,
       bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
@@ -209,125 +234,130 @@ const generateProducts = (count: number): ProductContent[] => {
       ],
     };
 
+    const formatPrice = (base: number, unit: string) => {
+      const finalPrice = base * rarityInfo.multiplier;
+      return `${finalPrice.toLocaleString()} ${unit}`;
+    };
+
     if (type === 'xianxia') {
       products.push({
         ...baseProduct,
         title: `Pháp Bảo ${i}: ${['Thanh Long', 'Bạch Hổ', 'Chu Tước', 'Huyền Vũ', 'Thiên Ma'][i % 5]} Kiếm`,
         subtitles: `Sức mạnh của ${['Cửu Thiên', 'U Minh', 'Thái Cổ', 'Hỗn Độn'][i % 4]} đang chờ đợi bạn!`,
-        themeColor: "#22d3ee",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Tu Tiên Giả ${i}`, avatar: `https://i.pravatar.cc/150?u=xianxia${i}`, status: i % 3 === 0 ? "Đang Livestream" : "Ngoại Tuyến", followers: `${(Math.random() * 5).toFixed(1)}M Đạo Hữu` },
         lore: `Pháp bảo được rèn từ ${i * 100} năm trước tại đỉnh núi ${['Trường Sinh', 'Thiên Sơn', 'Côn Lôn'][i % 3]}.`,
         materials: ["Linh Thạch", "Huyền Thiết", "Long Huyết"],
         hiddenStats: [{ label: "Linh Lực", value: `+${i * 10}` }, { label: "Tốc Độ", value: `+${i * 5}` }],
-        productDetails: { price: `${(i * 100).toLocaleString()} Linh Thạch`, description: `Vũ khí bậc nhất dành cho các đạo hữu đang tìm kiếm sự đột phá trong tu hành.`, stats: [{ label: "Công Kích", value: `${500 + i * 5}` }, { label: "Phòng Thủ", value: `${200 + i * 2}` }, { label: "Phẩm Cấp", value: i > 800 ? "Thần Giai" : "Địa Giai" }] }
+        productDetails: { price: formatPrice(100, 'Linh Thạch'), description: `Vũ khí bậc nhất dành cho các đạo hữu đang tìm kiếm sự đột phá trong tu hành.`, stats: [{ label: "Công Kích", value: `${500 + i * 5}` }, { label: "Phòng Thủ", value: `${200 + i * 2}` }, { label: "Phẩm Cấp", value: rarityInfo.rarity }] }
       });
     } else if (type === 'tech') {
       products.push({
         ...baseProduct,
         title: `Cyber Device ${i}: ${['Neural', 'Plasma', 'Quantum', 'Void'][i % 4]} Blade`,
         subtitles: `Upgrade your reality with version ${i}.0.`,
-        themeColor: "#f0abfc",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `NetRunner_${i}`, avatar: `https://i.pravatar.cc/150?u=tech${i}`, status: i % 2 === 0 ? "Đang Livestream" : "Ngoại Tuyến", followers: `${(Math.random() * 10).toFixed(1)}M Hackers` },
         lore: `Developed in the labs of ${['Sector 7', 'Neo-Silicon', 'The Grid'][i % 3]}.`,
         materials: ["Graphene", "Liquid Metal", "AI Core"],
         hiddenStats: [{ label: "Processing", value: `${i * 10} TFLOPS` }, { label: "Latency", value: "0.1ms" }],
-        productDetails: { price: `$${(i * 500).toLocaleString()} Credits`, description: `The next generation of tactical gear for the digital age.`, stats: [{ label: "Speed", value: "Mach 2" }, { label: "Durability", value: "99%" }, { label: "Battery", value: "100h" }] }
+        productDetails: { price: formatPrice(500, 'Credits'), description: `The next generation of tactical gear for the digital age.`, stats: [{ label: "Speed", value: "Mach 2" }, { label: "Durability", value: "99%" }, { label: "Battery", value: "100h" }] }
       });
     } else if (type === 'luxury') {
       products.push({
         ...baseProduct,
         title: `Luxury Item ${i}: ${['Diamond', 'Emerald', 'Ruby', 'Sapphire'][i % 4]} Edition`,
         subtitles: `Exclusivity redefined for the elite.`,
-        themeColor: "#fbbf24",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Collector_${i}`, avatar: `https://i.pravatar.cc/150?u=luxury${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 2).toFixed(1)}M Collectors` },
         lore: `A timeless piece passed down through generations of the ${['Royal', 'Imperial', 'Noble'][i % 3]} family.`,
         materials: ["18K Gold", "Rare Gems", "Silk"],
-        hiddenStats: [{ label: "Rarity", value: "1 of 1000" }, { label: "Craftsmanship", value: "Master" }],
-        productDetails: { price: `$${(i * 2000).toLocaleString()} USD`, description: `A symbol of status and elegance that transcends time.`, stats: [{ label: "Weight", value: "150g" }, { label: "Purity", value: "24K" }, { label: "Warranty", value: "Lifetime" }] }
+        hiddenStats: [{ label: "Rarity", value: rarityInfo.rarity }, { label: "Craftsmanship", value: "Master" }],
+        productDetails: { price: formatPrice(2000, 'USD'), description: `A symbol of status and elegance that transcends time.`, stats: [{ label: "Weight", value: "150g" }, { label: "Purity", value: "24K" }, { label: "Warranty", value: "Lifetime" }] }
       });
     } else if (type === 'fashion') {
       products.push({
         ...baseProduct,
         title: `Fashion ${i}: ${['Vogue', 'Urban', 'Classic', 'Avant'][i % 4]} Collection`,
         subtitles: `Wear your identity.`,
-        themeColor: "#ec4899",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Model_${i}`, avatar: `https://i.pravatar.cc/150?u=fashion${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 3).toFixed(1)}M Fans` },
         lore: `Designed by the world's leading fashion icons.`,
         materials: ["Organic Cotton", "Recycled Polyester", "Silk"],
         hiddenStats: [{ label: "Style Score", value: "99/100" }, { label: "Comfort", value: "Max" }],
-        productDetails: { price: `$${(i * 150).toLocaleString()}`, description: `A perfect blend of comfort and high-end fashion.`, stats: [{ label: "Size", value: "All" }, { label: "Color", value: "Multi" }, { label: "Season", value: "SS26" }] }
+        productDetails: { price: formatPrice(150, 'USD'), description: `A perfect blend of comfort and high-end fashion.`, stats: [{ label: "Size", value: "All" }, { label: "Color", value: "Multi" }, { label: "Season", value: "SS26" }] }
       });
     } else if (type === 'automotive') {
       products.push({
         ...baseProduct,
         title: `Vehicle ${i}: ${['Speedster', 'SUV', 'Electric', 'Hyper'][i % 4]} X`,
         subtitles: `The future of mobility.`,
-        themeColor: "#ef4444",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Driver_${i}`, avatar: `https://i.pravatar.cc/150?u=auto${i}`, status: "Đang Livestream", followers: `${(Math.random() * 5).toFixed(1)}M Racers` },
         lore: `Engineered for performance and sustainability.`,
         materials: ["Aluminum", "Carbon Fiber", "Lithium"],
         hiddenStats: [{ label: "0-100km/h", value: `${(2 + Math.random() * 3).toFixed(1)}s` }, { label: "Range", value: "600km" }],
-        productDetails: { price: `$${(i * 10000).toLocaleString()}`, description: `Experience the thrill of the open road with cutting-edge technology.`, stats: [{ label: "Horsepower", value: "800hp" }, { label: "Top Speed", value: "320km/h" }, { label: "Autopilot", value: "v5.0" }] }
+        productDetails: { price: formatPrice(10000, 'USD'), description: `Experience the thrill of the open road with cutting-edge technology.`, stats: [{ label: "Horsepower", value: "800hp" }, { label: "Top Speed", value: "320km/h" }, { label: "Autopilot", value: "v5.0" }] }
       });
     } else if (type === 'home') {
       products.push({
         ...baseProduct,
         title: `Home ${i}: ${['Minimalist', 'Modern', 'Vintage', 'Smart'][i % 4]} Sofa`,
         subtitles: `Transform your living space.`,
-        themeColor: "#10b981",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Designer_${i}`, avatar: `https://i.pravatar.cc/150?u=home${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 1).toFixed(1)}M Homeowners` },
         lore: `Crafted for comfort and aesthetic appeal.`,
         materials: ["Oak Wood", "Velvet", "Memory Foam"],
         hiddenStats: [{ label: "Durability", value: "20 Years" }, { label: "Eco-friendly", value: "Yes" }],
-        productDetails: { price: `$${(i * 300).toLocaleString()}`, description: `High-quality furniture that brings elegance to any room.`, stats: [{ label: "Material", value: "Premium" }, { label: "Warranty", value: "5 Years" }, { label: "Assembly", value: "Easy" }] }
+        productDetails: { price: formatPrice(300, 'USD'), description: `High-quality furniture that brings elegance to any room.`, stats: [{ label: "Material", value: "Premium" }, { label: "Warranty", value: "5 Years" }, { label: "Assembly", value: "Easy" }] }
       });
     } else if (type === 'electronics') {
       products.push({
         ...baseProduct,
         title: `Gadget ${i}: ${['Smartphone', 'Laptop', 'Tablet', 'Watch'][i % 4]} Pro`,
         subtitles: `Power in your hands.`,
-        themeColor: "#3b82f6",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Techie_${i}`, avatar: `https://i.pravatar.cc/150?u=elec${i}`, status: "Đang Livestream", followers: `${(Math.random() * 8).toFixed(1)}M Techies` },
         lore: `The latest in consumer electronics technology.`,
         materials: ["Glass", "Aluminum", "Silicon"],
         hiddenStats: [{ label: "Display", value: "OLED 120Hz" }, { label: "CPU", value: "M4 Chip" }],
-        productDetails: { price: `$${(i * 200).toLocaleString()}`, description: `Stay connected and productive with our latest electronic devices.`, stats: [{ label: "Storage", value: "1TB" }, { label: "RAM", value: "16GB" }, { label: "Battery", value: "24h" }] }
+        productDetails: { price: formatPrice(200, 'USD'), description: `Stay connected and productive with our latest electronic devices.`, stats: [{ label: "Storage", value: "1TB" }, { label: "RAM", value: "16GB" }, { label: "Battery", value: "24h" }] }
       });
     } else if (type === 'sports') {
       products.push({
         ...baseProduct,
         title: `Sports ${i}: ${['Running', 'Basketball', 'Tennis', 'Gym'][i % 4]} Gear`,
         subtitles: `Push your limits.`,
-        themeColor: "#f59e0b",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Athlete_${i}`, avatar: `https://i.pravatar.cc/150?u=sports${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 4).toFixed(1)}M Athletes` },
         lore: `Designed for peak performance and injury prevention.`,
         materials: ["Breathable Mesh", "Rubber", "Synthetic"],
         hiddenStats: [{ label: "Performance Boost", value: "+15%" }, { label: "Weight", value: "Light" }],
-        productDetails: { price: `$${(i * 50).toLocaleString()}`, description: `Professional-grade sports equipment for every athlete.`, stats: [{ label: "Grip", value: "High" }, { label: "Breathability", value: "Max" }, { label: "Flexibility", value: "High" }] }
+        productDetails: { price: formatPrice(50, 'USD'), description: `Professional-grade sports equipment for every athlete.`, stats: [{ label: "Grip", value: "High" }, { label: "Breathability", value: "Max" }, { label: "Flexibility", value: "High" }] }
       });
     } else if (type === 'beauty') {
       products.push({
         ...baseProduct,
         title: `Beauty ${i}: ${['Skincare', 'Makeup', 'Fragrance', 'Haircare'][i % 4]} Set`,
         subtitles: `Radiate confidence.`,
-        themeColor: "#d946ef",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Guru_${i}`, avatar: `https://i.pravatar.cc/150?u=beauty${i}`, status: "Đang Livestream", followers: `${(Math.random() * 6).toFixed(1)}M Beauties` },
         lore: `Formulated with natural ingredients for all skin types.`,
         materials: ["Aloe Vera", "Vitamin C", "Essential Oils"],
         hiddenStats: [{ label: "Natural", value: "100%" }, { label: "Cruelty-free", value: "Yes" }],
-        productDetails: { price: `$${(i * 40).toLocaleString()}`, description: `Enhance your natural beauty with our premium skincare and makeup products.`, stats: [{ label: "Volume", value: "100ml" }, { label: "Type", value: "Organic" }, { label: "SPF", value: "50+" }] }
+        productDetails: { price: formatPrice(40, 'USD'), description: `Enhance your natural beauty with our premium skincare and makeup products.`, stats: [{ label: "Volume", value: "100ml" }, { label: "Type", value: "Organic" }, { label: "SPF", value: "50+" }] }
       });
     } else {
       products.push({
         ...baseProduct,
         title: `Food ${i}: ${['Gourmet', 'Organic', 'Snack', 'Beverage'][i % 4]} Box`,
         subtitles: `A taste of perfection.`,
-        themeColor: "#84cc16",
+        themeColor: rarityInfo.color,
         kolInfo: { name: `Chef_${i}`, avatar: `https://i.pravatar.cc/150?u=food${i}`, status: "Ngoại Tuyến", followers: `${(Math.random() * 2).toFixed(1)}M Foodies` },
         lore: `Sourced from the finest organic farms around the world.`,
         materials: ["Organic Grains", "Fresh Fruits", "Natural Spices"],
         hiddenStats: [{ label: "Calories", value: "Low" }, { label: "Nutrients", value: "High" }],
-        productDetails: { price: `$${(i * 20).toLocaleString()}`, description: `Delicious and healthy food options for every meal.`, stats: [{ label: "Weight", value: "500g" }, { label: "Shelf Life", value: "6 Months" }, { label: "Vegan", value: "Yes" }] }
+        productDetails: { price: formatPrice(20, 'USD'), description: `Delicious and healthy food options for every meal.`, stats: [{ label: "Weight", value: "500g" }, { label: "Shelf Life", value: "6 Months" }, { label: "Vegan", value: "Yes" }] }
       });
     }
   }
@@ -934,18 +964,164 @@ const CategorySelector = ({
   );
 };
 
+const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (product: ProductContent) => void }) => {
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState<ProductType>('xianxia');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title) return;
+
+    const rarityInfo = getRarityInfo(Date.now(), 1000);
+    const basePrices: Record<ProductType, { val: number; unit: string }> = {
+      xianxia: { val: 100, unit: 'Linh Thạch' },
+      tech: { val: 500, unit: 'Credits' },
+      luxury: { val: 2000, unit: 'USD' },
+      fashion: { val: 150, unit: 'USD' },
+      automotive: { val: 10000, unit: 'USD' },
+      home: { val: 300, unit: 'USD' },
+      electronics: { val: 200, unit: 'USD' },
+      sports: { val: 50, unit: 'USD' },
+      beauty: { val: 40, unit: 'USD' },
+      food: { val: 20, unit: 'USD' }
+    };
+
+    const base = basePrices[type];
+    const finalPrice = (base.val * rarityInfo.multiplier).toLocaleString() + ' ' + base.unit;
+
+    const newProduct: ProductContent = {
+      id: Date.now(),
+      type,
+      rarity: rarityInfo.rarity,
+      rarityColor: rarityInfo.color,
+      title,
+      subtitles: `Một vật phẩm ${rarityInfo.rarity} vừa được giám định.`,
+      bgVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      characterVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      productVideoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      fallbackImg: `https://picsum.photos/seed/${type}${Date.now()}/1000/1000`,
+      themeColor: rarityInfo.color,
+      element: 'minimal',
+      kolInfo: {
+        name: "Hệ Thống Giám Định",
+        avatar: "https://i.pravatar.cc/150?u=system",
+        status: "Ngoại Tuyến",
+        followers: "Infinity"
+      },
+      reviews: [],
+      lore: `Vật phẩm này có độ hiếm ${rarityInfo.rarity}, được định giá tự động dựa trên thị trường.`,
+      materials: ["Bí Ẩn"],
+      hiddenStats: [{ label: "Độ Hiếm", value: rarityInfo.rarity }],
+      productDetails: {
+        price: finalPrice,
+        description: "Thông tin chi tiết đang được cập nhật.",
+        stats: [
+          { label: "Chất Lượng", value: rarityInfo.rarity },
+          { label: "Nguồn Gốc", value: "Hệ Thống" }
+        ]
+      }
+    };
+
+    onAdd(newProduct);
+    setTitle('');
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[32px] p-8 shadow-2xl"
+          >
+            <h3 className="text-2xl font-bold text-white mb-2">Giám Định Vật Phẩm</h3>
+            <p className="text-white/40 text-xs mb-8">Hệ thống sẽ tự động định giá và xác định độ hiếm.</p>
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Tên Vật Phẩm</label>
+                <input 
+                  type="text" 
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/40 transition-all"
+                  placeholder="Nhập tên vật phẩm..."
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Ngành Hàng</label>
+                <select 
+                  value={type}
+                  onChange={(e) => setType(e.target.value as ProductType)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/40 transition-all appearance-none"
+                >
+                  <option value="xianxia">Tiên Hiệp</option>
+                  <option value="tech">Công Nghệ</option>
+                  <option value="luxury">Xa Xỉ</option>
+                  <option value="fashion">Thời Trang</option>
+                  <option value="automotive">Ô Tô</option>
+                  <option value="home">Nội Thất</option>
+                  <option value="electronics">Điện Tử</option>
+                  <option value="sports">Thể Thao</option>
+                  <option value="beauty">Làm Đẹp</option>
+                  <option value="food">Ẩm Thực</option>
+                </select>
+              </div>
+              
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-4 rounded-xl bg-white/5 text-white text-xs font-bold hover:bg-white/10 transition-all"
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-4 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-all"
+                >
+                  Giám Định & Thêm
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export default function App() {
+  const [products, setProducts] = useState<ProductContent[]>(CONTENT_DATA);
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState<ProductType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showGrid, setShowGrid] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filteredData = CONTENT_DATA.filter(item => {
+  const filteredData = products.filter(item => {
     const matchesCategory = activeCategory === 'all' || item.type === activeCategory;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const handleAddProduct = (newProduct: ProductContent) => {
+    setProducts([newProduct, ...products]);
+    setActiveIndex(0);
+    // Scroll to top
+    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const scrollToProduct = (index: number) => {
     const elements = containerRef.current?.querySelectorAll('.snap-start');
@@ -997,25 +1173,38 @@ export default function App() {
         setActiveCategory={setActiveCategory} 
       />
 
-      {/* Search & Grid Toggle */}
-      <div className="absolute top-8 right-10 z-[60] flex items-center gap-4">
-        <div className="relative hidden sm:block">
+      {/* Search & Grid Toggle - Moved below category bar */}
+      <div className="absolute top-[88px] left-10 z-[60] flex items-center gap-3">
+        <div className="relative">
           <input 
             type="text" 
             placeholder="Tìm kiếm sản phẩm..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-6 py-2.5 text-xs text-white focus:outline-none focus:border-white/40 transition-all w-[200px] lg:w-[300px]"
+            className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-5 py-2 text-[10px] text-white focus:outline-none focus:border-white/40 transition-all w-[180px] lg:w-[240px] h-10"
           />
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" size={14} />
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" size={12} />
         </div>
         <button 
           onClick={() => setShowGrid(!showGrid)}
-          className="w-12 h-12 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
+          className="w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
         >
-          {showGrid ? <X size={20} /> : <LayoutGrid size={20} />}
+          {showGrid ? <X size={18} /> : <LayoutGrid size={18} />}
+        </button>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-white/90 transition-all shadow-2xl"
+        >
+          <Plus size={18} />
         </button>
       </div>
+
+      {/* Create Product Modal */}
+      <CreateProductModal 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+        onAdd={handleAddProduct} 
+      />
 
       {/* Grid View Overlay */}
       <AnimatePresence>
@@ -1060,6 +1249,14 @@ export default function App() {
                         alt={item.title}
                         referrerPolicy="no-referrer"
                       />
+                      <div className="absolute top-3 left-3">
+                        <span 
+                          className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border"
+                          style={{ borderColor: item.rarityColor, color: item.rarityColor, backgroundColor: `${item.rarityColor}20` }}
+                        >
+                          {item.rarity}
+                        </span>
+                      </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all" />
                       <div className="absolute bottom-4 left-4 right-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all">
                         <p className="text-[10px] font-black text-white uppercase tracking-widest">{item.productDetails.price}</p>
