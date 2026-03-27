@@ -10,7 +10,14 @@ import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Float, MeshWobbleMaterial, Sparkles, Environment, useGLTF, Stage, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { GoogleGenAI, Type } from "@google/genai";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 // --- Components ---
 
@@ -577,6 +584,234 @@ const Product3DViewer = ({ type, color, modelUrl }: { type: ProductType; color: 
   );
 };
 
+
+const GridOverlay = ({ 
+  isOpen, 
+  onClose, 
+  products, 
+  onSelect,
+  filterRarity,
+  setFilterRarity,
+  sortBy,
+  setSortBy
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  products: ProductContent[]; 
+  onSelect: (index: number) => void;
+  filterRarity: RarityType | 'All';
+  setFilterRarity: (r: RarityType | 'All') => void;
+  sortBy: 'price-asc' | 'price-desc' | 'rarity-desc' | 'none';
+  setSortBy: (s: 'price-asc' | 'price-desc' | 'rarity-desc' | 'none') => void;
+}) => {
+  const [search, setSearch] = useState('');
+
+  const filtered = products
+    .filter(p => p.title.toLowerCase().includes(search.toLowerCase()))
+    .filter(p => filterRarity === 'All' || p.rarity === filterRarity)
+    .sort((a, b) => {
+      const getPrice = (p: string) => parseFloat(p.replace(/[^0-9.]/g, '')) || 0;
+      if (sortBy === 'price-asc') return getPrice(a.productDetails.price) - getPrice(b.productDetails.price);
+      if (sortBy === 'price-desc') return getPrice(b.productDetails.price) - getPrice(a.productDetails.price);
+      if (sortBy === 'rarity-desc') {
+        const rarityOrder: Record<string, number> = { 'Thần Thoại': 6, 'Huyền Thoại': 5, 'Sử Thi': 4, 'Cực Hiếm': 3, 'Hiếm': 2, 'Thường': 1 };
+        return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+      }
+      return 0;
+    });
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-3xl overflow-y-auto"
+        >
+          <div className="max-w-7xl mx-auto px-8 py-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+              <div>
+                <h2 className="text-5xl font-black text-white uppercase tracking-tighter">Thư Viện Pháp Bảo</h2>
+                <p className="text-white/40 text-sm mt-2">Khám phá hàng ngàn vật phẩm trong đa vũ trụ.</p>
+              </div>
+              <button 
+                onClick={onClose}
+                className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+              <div className="lg:col-span-2 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Tìm kiếm pháp bảo..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white focus:outline-none focus:border-white/40 transition-all"
+                />
+              </div>
+              
+              <div className="flex gap-4">
+                <select 
+                  value={filterRarity} 
+                  onChange={(e) => setFilterRarity(e.target.value as any)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-[10px] font-bold uppercase tracking-widest focus:outline-none appearance-none"
+                >
+                  <option value="All">Tất Cả Độ Hiếm</option>
+                  <option value="Thường">Thường</option>
+                  <option value="Hiếm">Hiếm</option>
+                  <option value="Cực Hiếm">Cực Hiếm</option>
+                  <option value="Sử Thi">Sử Thi</option>
+                  <option value="Huyền Thoại">Huyền Thoại</option>
+                  <option value="Thần Thoại">Thần Thoại</option>
+                </select>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-[10px] font-bold uppercase tracking-widest focus:outline-none appearance-none"
+                >
+                  <option value="none">Sắp Xếp</option>
+                  <option value="price-asc">Giá: Thấp - Cao</option>
+                  <option value="price-desc">Giá: Cao - Thấp</option>
+                  <option value="rarity-desc">Độ Hiếm Giảm Dần</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {filtered.map((product, idx) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.02 }}
+                  onClick={() => {
+                    const originalIndex = products.findIndex(p => p.id === product.id);
+                    onSelect(originalIndex);
+                    onClose();
+                  }}
+                  className="group relative aspect-[3/4] rounded-3xl overflow-hidden cursor-pointer bg-white/5 border border-white/5 hover:border-white/20 transition-all"
+                >
+                  <img 
+                    src={product.fallbackImg} 
+                    alt={product.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                  
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-white/10 text-white/60">
+                        {product.type}
+                      </span>
+                      <span style={{ color: product.rarityColor }} className="text-[7px] font-black uppercase tracking-widest">
+                        {product.rarity}
+                      </span>
+                    </div>
+                    <h4 className="text-white font-bold text-sm leading-tight group-hover:text-cyan-400 transition-colors">{product.title}</h4>
+                    <p className="text-white/40 text-[10px] mt-1">{product.productDetails.price}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const CharacterModal = ({ isOpen, onClose, equippedItems }: { isOpen: boolean; onClose: () => void; equippedItems: ProductContent[] }) => {
+  const totalAttack = equippedItems.reduce((acc, p) => acc + (Number(p.productDetails.stats.find(s => s.label === "Công Kích")?.value) || 0), 0);
+  const totalSpirit = equippedItems.reduce((acc, p) => acc + (Number(p.hiddenStats.find(s => s.label === "Linh Lực")?.value) || 0), 0);
+  const totalSpeed = equippedItems.reduce((acc, p) => acc + (Number(p.productDetails.stats.find(s => s.label === "Tốc Độ")?.value) || 0), 0);
+
+  const statsData = [
+    { name: 'Công Kích', value: totalAttack, color: '#ef4444' },
+    { name: 'Linh Lực', value: totalSpirit, color: '#3b82f6' },
+    { name: 'Tốc Độ', value: totalSpeed, color: '#10b981' },
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="relative w-full max-w-4xl bg-slate-900 border border-white/10 rounded-[48px] p-12 shadow-2xl flex flex-col md:flex-row gap-12"
+          >
+            <div className="flex-1">
+              <h3 className="text-4xl font-black text-white uppercase tracking-tighter mb-2">Tu Tiên Giả</h3>
+              <p className="text-white/40 text-sm mb-8">Trạng thái sức mạnh hiện tại của bạn.</p>
+              
+              <div className="space-y-8">
+                {statsData.map(stat => (
+                  <div key={stat.name}>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{stat.name}</span>
+                      <span className="text-2xl font-black text-white">{stat.value}</span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(stat.value / 3, 100)}%` }}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: stat.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-12 p-6 rounded-3xl bg-white/5 border border-white/5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4">Pháp Bảo Đang Trang Bị ({equippedItems.length}/3)</p>
+                <div className="flex gap-4">
+                  {equippedItems.map(item => (
+                    <div key={item.id} className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                      <img src={item.fallbackImg} className="w-full h-full object-cover" alt={item.title} referrerPolicy="no-referrer" />
+                    </div>
+                  ))}
+                  {Array.from({ length: 3 - equippedItems.length }).map((_, i) => (
+                    <div key={i} className="w-16 h-16 rounded-2xl border border-dashed border-white/10 bg-white/5 flex items-center justify-center text-white/10">
+                      <Plus size={20} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 relative aspect-square rounded-[40px] overflow-hidden bg-black/40 border border-white/10">
+              <img 
+                src="https://picsum.photos/seed/cultivator/800/800" 
+                className="w-full h-full object-cover opacity-80"
+                alt="Cultivator"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+              <div className="absolute bottom-8 left-8">
+                <p className="text-cyan-400 text-[10px] font-black uppercase tracking-widest mb-1">Cảnh Giới</p>
+                <p className="text-white text-2xl font-black uppercase">Trúc Cơ Kỳ</p>
+              </div>
+            </div>
+
+            <button onClick={onClose} className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
+              <X size={24} />
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const XianxiaDisplay = ({ content, isActive, onBuy, isOwned }: { content: ProductContent; isActive: boolean; onBuy: (p: ProductContent) => void; isOwned: boolean }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -1014,13 +1249,19 @@ const CategorySelector = ({
   );
 };
 
-const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (product: ProductContent) => void }) => {
+const CreateProductModal = ({ isOpen, onClose, onAdd, onGenerateAI, isGeneratingAI }: { isOpen: boolean; onClose: () => void; onAdd: (product: ProductContent) => void; onGenerateAI: (name: string, category: string) => Promise<any>; isGeneratingAI: boolean }) => {
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ProductType>('xianxia');
+  const [useAI, setUseAI] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) return;
+
+    let aiData = null;
+    if (useAI) {
+      aiData = await onGenerateAI(title, type);
+    }
 
     const rarityInfo = getRarityInfo(Date.now(), 1000);
     const basePrices: Record<ProductType, { val: number; unit: string }> = {
@@ -1059,15 +1300,19 @@ const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClo
         followers: "Infinity"
       },
       reviews: [],
-      lore: `Vật phẩm này có độ hiếm ${rarityInfo.rarity}, được định giá tự động dựa trên thị trường.`,
+      lore: aiData?.lore || `Vật phẩm này có độ hiếm ${rarityInfo.rarity}, được định giá tự động dựa trên thị trường.`,
       materials: ["Bí Ẩn"],
-      hiddenStats: [{ label: "Độ Hiếm", value: rarityInfo.rarity }],
+      hiddenStats: [
+        { label: "Độ Hiếm", value: rarityInfo.rarity },
+        { label: "Linh Lực", value: aiData?.spirit || "???" }
+      ],
       productDetails: {
         price: finalPrice,
-        description: "Thông tin chi tiết đang được cập nhật.",
+        description: aiData?.lore || "Thông tin chi tiết đang được cập nhật.",
         stats: [
-          { label: "Chất Lượng", value: rarityInfo.rarity },
-          { label: "Nguồn Gốc", value: "Hệ Thống" }
+          { label: "Công Kích", value: aiData?.attack || "???" },
+          { label: "Tốc Độ", value: aiData?.speed || "???" },
+          { label: "Nguồn Gốc", value: "Hệ Thống AI" }
         ]
       }
     };
@@ -1095,7 +1340,7 @@ const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClo
             className="relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[32px] p-8 shadow-2xl"
           >
             <h3 className="text-2xl font-bold text-white mb-2">Giám Định Vật Phẩm</h3>
-            <p className="text-white/40 text-xs mb-8">Hệ thống sẽ tự động định giá và xác định độ hiếm.</p>
+            <p className="text-white/40 text-xs mb-8">Hệ thống AI sẽ tự động viết truyền thuyết và cân bằng chỉ số.</p>
             
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -1127,6 +1372,20 @@ const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClo
                   <option value="food">Ẩm Thực</option>
                 </select>
               </div>
+
+              <div className="flex items-center gap-3 py-2">
+                <button 
+                  type="button"
+                  onClick={() => setUseAI(!useAI)}
+                  className={`w-10 h-6 rounded-full transition-all relative ${useAI ? 'bg-cyan-500' : 'bg-white/10'}`}
+                >
+                  <motion.div 
+                    animate={{ x: useAI ? 18 : 4 }}
+                    className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                  />
+                </button>
+                <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Sử dụng Gemini AI (Lore & Stats)</span>
+              </div>
               
               <div className="pt-4 flex gap-3">
                 <button 
@@ -1138,9 +1397,19 @@ const CreateProductModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClo
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-4 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-all"
+                  disabled={isGeneratingAI}
+                  className="flex-1 py-4 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-all flex items-center justify-center gap-2"
                 >
-                  Giám Định & Thêm
+                  {isGeneratingAI ? (
+                    <>
+                      <motion.div 
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full"
+                      />
+                      Đang Giám Định...
+                    </>
+                  ) : 'Giám Định & Thêm'}
                 </button>
               </div>
             </form>
@@ -1187,22 +1456,52 @@ const StatsModal = ({ isOpen, onClose, products }: { isOpen: boolean; onClose: (
               </button>
             </div>
 
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <YAxis hide />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                    itemStyle={{ color: '#fff', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                    {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-6">Phân Bổ Độ Hiếm</p>
+                <div className="h-[240px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                      <YAxis hide />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff', fontSize: '12px' }}
+                      />
+                      <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                        {data.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-6">Lịch Sử Giao Dịch (Linh Thạch)</p>
+                <div className="h-[240px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[
+                      { day: '01/03', volume: 120 },
+                      { day: '05/03', volume: 450 },
+                      { day: '10/03', volume: 300 },
+                      { day: '15/03', volume: 800 },
+                      { day: '20/03', volume: 600 },
+                      { day: '25/03', volume: 1200 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                      <YAxis hide />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff', fontSize: '12px' }}
+                      />
+                      <Line type="monotone" dataKey="volume" stroke="#22d3ee" strokeWidth={3} dot={{ fill: '#22d3ee', r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 mt-10">
@@ -1286,7 +1585,35 @@ export default function App() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [equippedItems, setEquippedItems] = useState<ProductContent[]>([]);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  
+  // Filtering & Sorting State
+  const [filterRarity, setFilterRarity] = useState<RarityType | 'All'>('All');
+  const [filterElement, setFilterElement] = useState<ElementType | 'All'>('All');
+  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'rarity-desc' | 'none'>('none');
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const connectWallet = async () => {
+    setWalletError(null);
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+        }
+      } catch (err: any) {
+        console.error("Failed to connect to MetaMask:", err);
+        setWalletError("Failed to connect to MetaMask. Please try again.");
+      }
+    } else {
+      setWalletError("MetaMask is not installed. Please install it to continue.");
+    }
+  };
 
   useEffect(() => {
     setProducts(generateProducts(1000));
@@ -1305,8 +1632,59 @@ export default function App() {
   };
 
   const handleBuy = (product: ProductContent) => {
+    if (!walletAddress) {
+      setWalletError("Vui lòng kết nối ví MetaMask để thực hiện giao dịch.");
+      return;
+    }
+    
     if (!collection.find(p => p.id === product.id)) {
       setCollection([product, ...collection]);
+    }
+  };
+
+  const handleEquip = (product: ProductContent) => {
+    if (equippedItems.find(p => p.id === product.id)) {
+      setEquippedItems(equippedItems.filter(p => p.id !== product.id));
+    } else {
+      // Limit to 3 equipped items for balance
+      if (equippedItems.length < 3) {
+        setEquippedItems([...equippedItems, product]);
+      } else {
+        alert("Bạn chỉ có thể trang bị tối đa 3 pháp bảo!");
+      }
+    }
+  };
+
+  const generateAIContent = async (name: string, category: string) => {
+    if (!name) return;
+    setIsGeneratingAI(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Hãy tạo một đoạn truyền thuyết (lore) ngắn (khoảng 3 câu) và các chỉ số sức mạnh (Công kích, Linh lực, Tốc độ - từ 10 đến 100) cho một pháp bảo tên là "${name}" thuộc danh mục "${category}" trong thế giới Tiên Hiệp Cyberpunk. Trả về định dạng JSON.`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              lore: { type: Type.STRING },
+              attack: { type: Type.NUMBER },
+              spirit: { type: Type.NUMBER },
+              speed: { type: Type.NUMBER },
+            },
+            required: ["lore", "attack", "spirit", "speed"]
+          }
+        }
+      });
+      
+      const data = JSON.parse(response.text);
+      return data;
+    } catch (error) {
+      console.error("AI Generation failed:", error);
+      return null;
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -1406,6 +1784,31 @@ export default function App() {
             </span>
           )}
         </button>
+
+        <div className="w-px h-6 bg-white/10 mx-1" />
+
+        <button 
+          onClick={connectWallet}
+          className={`h-10 px-4 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all shadow-2xl border ${
+            walletAddress 
+              ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' 
+              : 'bg-slate-900/80 text-white/60 border-white/10 hover:text-white'
+          }`}
+        >
+          <Zap size={14} className={walletAddress ? 'fill-emerald-500' : ''} />
+          {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Kết Nối Ví'}
+        </button>
+
+        {walletError && (
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute top-12 left-0 bg-red-500/90 backdrop-blur-md text-white text-[9px] font-bold px-4 py-2 rounded-xl border border-red-500/20 shadow-2xl flex items-center gap-2 z-[70]"
+          >
+            <X size={12} className="cursor-pointer" onClick={() => setWalletError(null)} />
+            {walletError}
+          </motion.div>
+        )}
       </div>
 
       {/* Modals */}
@@ -1413,6 +1816,8 @@ export default function App() {
         isOpen={showCreateModal} 
         onClose={() => setShowCreateModal(false)} 
         onAdd={handleAddProduct} 
+        onGenerateAI={generateAIContent}
+        isGeneratingAI={isGeneratingAI}
       />
       <StatsModal 
         isOpen={showStatsModal} 
@@ -1424,72 +1829,23 @@ export default function App() {
         onClose={() => setShowCollectionModal(false)} 
         collection={collection} 
       />
+      <CharacterModal
+        isOpen={showCharacterModal}
+        onClose={() => setShowCharacterModal(false)}
+        equippedItems={equippedItems}
+      />
 
       {/* Grid View Overlay */}
-      <AnimatePresence>
-        {showGrid && (
-          <motion.div
-            initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
-            exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-6 lg:p-20"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-6xl h-full bg-slate-900/40 rounded-[48px] border border-white/10 overflow-hidden flex flex-col"
-            >
-              <div className="p-8 border-b border-white/10 flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold tracking-tight">Kho Hàng ({filteredData.length})</h2>
-                  <p className="text-white/40 text-sm mt-1">Chọn một sản phẩm để xem chi tiết</p>
-                </div>
-                <button 
-                  onClick={() => setShowGrid(false)}
-                  className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {filteredData.map((item, idx) => (
-                  <motion.div
-                    key={item.id}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    onClick={() => scrollToProduct(idx)}
-                    className="group cursor-pointer"
-                  >
-                    <div className="relative aspect-square rounded-3xl overflow-hidden border border-white/10 bg-black/40 mb-3">
-                      <img 
-                        src={item.fallbackImg} 
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-500"
-                        alt={item.title}
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute top-3 left-3">
-                        <span 
-                          className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border"
-                          style={{ borderColor: item.rarityColor, color: item.rarityColor, backgroundColor: `${item.rarityColor}20` }}
-                        >
-                          {item.rarity}
-                        </span>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all" />
-                      <div className="absolute bottom-4 left-4 right-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all">
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">{item.productDetails.price}</p>
-                      </div>
-                    </div>
-                    <h4 className="text-white font-bold text-sm truncate px-1">{item.title}</h4>
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest px-1 mt-1">{item.type}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <GridOverlay
+        isOpen={showGrid}
+        onClose={() => setShowGrid(false)}
+        products={filteredData}
+        onSelect={scrollToProduct}
+        filterRarity={filterRarity}
+        setFilterRarity={setFilterRarity}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+      />
 
       {/* Background Ambient Glow */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
