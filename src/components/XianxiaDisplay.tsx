@@ -20,9 +20,10 @@ interface XianxiaDisplayProps {
   onGenerateKOLAvatar: (prompt: string) => Promise<string | null>;
   onGenerateKOLVideo: (prompt: string) => Promise<string | null>;
   onGenerateKOLVoice: (text: string) => Promise<string | null>;
+  onCultivate: (kolId: string) => void;
 }
 
-const XianxiaDisplay = ({ content, isActive, onBuy, isOwned, onGenerateKOLAvatar, onGenerateKOLVideo, onGenerateKOLVoice }: XianxiaDisplayProps) => {
+const XianxiaDisplay = ({ content, isActive, onBuy, isOwned, onGenerateKOLAvatar, onGenerateKOLVideo, onGenerateKOLVoice, onCultivate }: XianxiaDisplayProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [show3D, setShow3D] = useState(false);
@@ -109,12 +110,22 @@ const XianxiaDisplay = ({ content, isActive, onBuy, isOwned, onGenerateKOLAvatar
           >
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50" style={{ color: content.themeColor }}>{content.kolInfo.role} Partner</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50" style={{ 
+                  color: content.kolInfo.role === 'Celestial' ? '#FDE047' : 
+                         content.kolInfo.role === 'Godlike' ? '#F472B6' :
+                         content.kolInfo.role === 'Eternal' ? '#A78BFA' :
+                         content.kolInfo.role === 'Universal' ? '#22D3EE' : content.themeColor 
+                }}>
+                  {content.kolInfo.isBreakthrough ? 'MYTHICAL' : `GEN ${content.kolInfo.generation || 1}`} {content.kolInfo.role}
+                </span>
                 {content.kolInfo.status === "Đang Livestream" && (
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
               </div>
-              <h4 className="text-white font-black text-xl tracking-tight uppercase">{content.kolInfo.name}</h4>
+              <h4 className="text-white font-black text-xl tracking-tight uppercase flex items-center gap-2">
+                {content.kolInfo.name}
+                {content.kolInfo.isBreakthrough && <Zap size={16} className="text-yellow-400 fill-yellow-400" />}
+              </h4>
               <p className="text-[10px] text-slate-400 font-medium tracking-widest mt-1 italic">"{content.kolInfo.bio}"</p>
             </div>
             
@@ -339,6 +350,7 @@ const XianxiaDisplay = ({ content, isActive, onBuy, isOwned, onGenerateKOLAvatar
         content={content} 
         onBuy={onBuy}
         isOwned={isOwned}
+        onCultivate={onCultivate}
       />
 
       {/* KOL Media Modal */}

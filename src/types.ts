@@ -27,8 +27,14 @@ export interface KOLInfo {
   reputation: number; // 0-100
   videoUrl?: string;
   voiceUrl?: string;
-  role: 'Influencer' | 'Expert' | 'Reviewer' | 'Ambassador' | 'Legend';
+  role: 'Influencer' | 'Expert' | 'Reviewer' | 'Ambassador' | 'Legend' | 'Mythical' | 'Celestial' | 'Godlike' | 'Eternal' | 'Universal';
   skills: KOLSkill[];
+  generation: number;
+  parents?: string[]; // IDs of parent KOLs
+  isBreakthrough?: boolean;
+  level: number;
+  experience: number;
+  rankPoints: number;
 }
 
 export interface Ability {

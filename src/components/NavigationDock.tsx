@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X, Menu, ChevronUp, ChevronDown, Home, User, Users } from 'lucide-react';
+import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X, Menu, ChevronUp, ChevronDown, Home, User, Users, Sparkles } from 'lucide-react';
 import CategorySelector from './CategorySelector';
 import { ProductType } from '../types';
 
@@ -23,6 +23,7 @@ interface NavigationDockProps {
   setShowCharacterModal: (s: boolean) => void;
   setShowKOLModal: (s: boolean) => void;
   collectionCount: number;
+  worldMythicalCount: number;
   connectWallet: () => void;
   walletAddress: string | null;
   walletError: string | null;
@@ -43,12 +44,17 @@ const NavigationDock = ({
   setShowCharacterModal,
   setShowKOLModal,
   collectionCount,
+  worldMythicalCount,
   connectWallet,
   walletAddress,
   walletError,
   setWalletError
 }: NavigationDockProps) => {
   const [isMenuVisible, setIsMenuVisible] = useState(true);
+
+  const mythicalThreshold = 100;
+  const progress = Math.min(100, (worldMythicalCount / mythicalThreshold) * 100);
+  const isUnlocked = worldMythicalCount >= mythicalThreshold;
 
   const handleHome = () => {
     setActiveCategory('all');
@@ -68,7 +74,27 @@ const NavigationDock = ({
             className="flex flex-col items-center gap-4 mb-4 pointer-events-auto"
           >
             {/* Categories Bar */}
-            <div className="relative">
+            <div className="relative flex flex-col items-center gap-2">
+              {/* World Ascension Progress */}
+              <div className="w-full max-w-[300px] px-4 py-2 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/5 flex flex-col gap-1">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[8px] font-black text-white/40 uppercase tracking-widest flex items-center gap-1">
+                    <Sparkles size={10} className={isUnlocked ? 'text-yellow-400' : 'text-purple-400'} />
+                    World Ascension
+                  </span>
+                  <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">
+                    {isUnlocked ? 'UNLOCKED' : `${worldMythicalCount} / ${mythicalThreshold} MYTHICALS`}
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    className={`h-full ${isUnlocked ? 'bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]' : 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]'}`}
+                  />
+                </div>
+              </div>
+
               <CategorySelector 
                 categories={categories} 
                 activeCategory={activeCategory} 

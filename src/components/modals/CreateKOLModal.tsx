@@ -13,14 +13,19 @@ interface CreateKOLModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (kol: KOLInfo) => void;
+  existingKOLs: KOLInfo[];
+  totalKOLCount: number;
 }
 
-const CreateKOLModal = ({ isOpen, onClose, onAdd }: CreateKOLModalProps) => {
+const CreateKOLModal = ({ isOpen, onClose, onAdd, existingKOLs, totalKOLCount }: CreateKOLModalProps) => {
   const [name, setName] = useState('');
   const [specialty, setSpecialty] = useState<ProductType[]>(['xianxia']);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedKOL, setGeneratedKOL] = useState<Partial<KOLInfo> | null>(null);
   const [step, setStep] = useState<'info' | 'media' | 'preview'>('info');
+  const [selectedParents, setSelectedParents] = useState<string[]>([]);
+
+  const isBreakthrough = (totalKOLCount + 1) % 100 === 0;
 
   const categories: { id: ProductType; label: string }[] = [
     { id: 'xianxia', label: 'Tiên Hiệp' },
@@ -39,12 +44,13 @@ const CreateKOLModal = ({ isOpen, onClose, onAdd }: CreateKOLModalProps) => {
     if (!name) return;
     setIsGenerating(true);
     try {
-      const profile = await aiService.generateKOLProfile(name, specialty);
+      const parents = existingKOLs.filter(k => selectedParents.includes(k.id));
+      const profile = await aiService.generateKOLProfile(name, specialty, parents, totalKOLCount);
       setGeneratedKOL({
         id: `kol-${Date.now()}`,
         name,
         specialty,
-        reputation: 50 + Math.floor(Math.random() * 50),
+        reputation: isBreakthrough ? 90 + Math.floor(Math.random() * 10) : 50 + Math.floor(Math.random() * 50),
         ...profile
       });
       setStep('media');
@@ -94,6 +100,14 @@ const CreateKOLModal = ({ isOpen, onClose, onAdd }: CreateKOLModalProps) => {
     }
   };
 
+  const toggleParent = (id: string) => {
+    if (selectedParents.includes(id)) {
+      setSelectedParents(selectedParents.filter(p => p !== id));
+    } else if (selectedParents.length < 2) {
+      setSelectedParents([...selectedParents, id]);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -117,10 +131,14 @@ const CreateKOLModal = ({ isOpen, onClose, onAdd }: CreateKOLModalProps) => {
           <div className="p-8 border-bottom border-white/5 flex items-center justify-between bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
             <div>
               <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                <Sparkles className="text-cyan-400" />
-                Tạo KOL Chuyên Nghiệp
+                {isBreakthrough ? <Zap className="text-yellow-400 animate-pulse" /> : <Sparkles className="text-cyan-400" />}
+                {isBreakthrough ? 'ĐỘT PHÁ THIÊN ĐẠO' : 'Tạo KOL Chuyên Nghiệp'}
               </h2>
-              <p className="text-white/40 text-xs mt-1">Sử dụng AI để kiến tạo một đại diện thương hiệu hoàn hảo</p>
+              <p className="text-white/40 text-xs mt-1">
+                {isBreakthrough 
+                  ? 'KOL thứ 100 sắp xuất hiện với sức mạnh thần thoại!' 
+                  : 'Sử dụng AI để kiến tạo một đại diện thương hiệu hoàn hảo'}
+              </p>
             </div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
               <X size={20} />
@@ -160,6 +178,31 @@ const CreateKOLModal = ({ isOpen, onClose, onAdd }: CreateKOLModalProps) => {
                     ))}
                   </div>
                 </div>
+
+                {existingKOLs.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Chọn Tiền Bối (Di Truyền - Tối đa 2)</label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                      {existingKOLs.map(kol => (
+                        <button
+                          key={kol.id}
+                          onClick={() => toggleParent(kol.id)}
+                          className={`flex items-center gap-3 p-2 rounded-xl border transition-all ${
+                            selectedParents.includes(kol.id)
+                              ? 'bg-purple-500/20 border-purple-400 text-purple-400'
+                              : 'bg-white/5 border-white/5 text-white/40 hover:border-white/10'
+                          }`}
+                        >
+                          <img src={kol.avatar} className="w-8 h-8 rounded-lg object-cover" alt={kol.name} />
+                          <div className="text-left">
+                            <p className="text-[10px] font-bold truncate w-24">{kol.name}</p>
+                            <p className="text-[8px] opacity-60">Gen {kol.generation}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={handleGenerateProfile}

@@ -20,7 +20,11 @@ export const KOLS: KOLInfo[] = [
     skills: [
       { name: "Kiếm Khí Tung Hoành", description: "Tăng 20% sát thương cho các loại kiếm.", effect: "+20% Damage", cooldown: "60s", level: 85 },
       { name: "Vạn Kiếm Quy Tông", description: "Triệu hồi hàng ngàn thanh kiếm tấn công kẻ địch.", effect: "AOE Damage", cooldown: "300s", level: 92 }
-    ]
+    ],
+    generation: 1,
+    level: 5,
+    experience: 250,
+    rankPoints: 100
   },
   {
     id: "kol-2",
@@ -36,7 +40,11 @@ export const KOLS: KOLInfo[] = [
     skills: [
       { name: "Nano Reconstruction", description: "Tự động sửa chữa các thiết bị bị hỏng.", effect: "Repair", cooldown: "120s", level: 78 },
       { name: "Quantum Synthesis", description: "Tạo ra các vật liệu hiếm từ hư không.", effect: "Resource Gen", cooldown: "600s", level: 95 }
-    ]
+    ],
+    generation: 1,
+    level: 8,
+    experience: 600,
+    rankPoints: 450
   },
   {
     id: "kol-3",
@@ -52,7 +60,11 @@ export const KOLS: KOLInfo[] = [
     skills: [
       { name: "Trendsetter", description: "Tăng 50% khả năng bán được hàng.", effect: "+50% Sales", cooldown: "180s", level: 98 },
       { name: "Golden Aura", description: "Giảm 10% giá mua các mặt hàng xa xỉ.", effect: "-10% Price", cooldown: "Passive", level: 88 }
-    ]
+    ],
+    generation: 1,
+    level: 12,
+    experience: 1200,
+    rankPoints: 800
   },
   {
     id: "kol-4",
@@ -68,7 +80,11 @@ export const KOLS: KOLInfo[] = [
     skills: [
       { name: "Nitro Boost", description: "Tăng tốc độ di chuyển lên 200%.", effect: "Speed x2", cooldown: "45s", level: 94 },
       { name: "Aerodynamic Review", description: "Tăng hiệu suất khí động học cho xe.", effect: "+15% Efficiency", cooldown: "Passive", level: 82 }
-    ]
+    ],
+    generation: 1,
+    level: 7,
+    experience: 450,
+    rankPoints: 300
   }
 ];
 

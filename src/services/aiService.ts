@@ -5,6 +5,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { KOLInfo, KOLSkill, ProductType } from "../types";
+import { SKILL_POOL } from "../skills";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
@@ -46,13 +47,25 @@ export const aiService = {
   },
 
   /**
-   * Generates a professional KOL profile.
+   * Generates a professional KOL profile with Inheritance and Breakthrough logic.
    */
-  generateKOLProfile: async (name: string, specialty: ProductType[]) => {
+  generateKOLProfile: async (name: string, specialty: ProductType[], parents?: KOLInfo[], totalKOLCount: number = 0) => {
+    const isBreakthrough = (totalKOLCount + 1) % 100 === 0;
+    const generation = parents && parents.length > 0 ? Math.max(...parents.map(p => p.generation)) + 1 : 1;
+    
+    // Inherit skills if parents exist
+    let inheritedSkills: KOLSkill[] = [];
+    if (parents && parents.length > 0) {
+      const allParentSkills = parents.flatMap(p => p.skills);
+      // Randomly pick 2 skills from parents
+      inheritedSkills = allParentSkills.sort(() => 0.5 - Math.random()).slice(0, 2);
+    }
+
     const model = genAI.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Tạo một hồ sơ KOL chuyên nghiệp cho người tên "${name}" chuyên về các lĩnh vực: ${specialty.join(", ")}. 
-      Bao gồm: tiểu sử (bio), trạng thái hiện tại, số lượng người theo dõi (định dạng như 1.2M), vai trò (Influencer, Expert, Reviewer, Ambassador, Legend), và 2 kỹ năng đặc trưng (tên, mô tả, hiệu ứng, thời gian hồi chiêu).
+      contents: `Tạo một hồ sơ KOL ${isBreakthrough ? 'HUYỀN THOẠI (BREAKTHROUGH)' : 'chuyên nghiệp'} cho người tên "${name}" chuyên về các lĩnh vực: ${specialty.join(", ")}. 
+      Thế hệ: ${generation}. ${parents && parents.length > 0 ? `Di truyền từ: ${parents.map(p => p.name).join(", ")}.` : ''}
+      Bao gồm: tiểu sử (bio), trạng thái hiện tại, số lượng người theo dõi (định dạng như 1.2M), vai trò (${isBreakthrough ? 'Mythical' : 'Influencer, Expert, Reviewer, Ambassador, Legend'}), và 2 kỹ năng đặc trưng mới (tên, mô tả, hiệu ứng, thời gian hồi chiêu).
       Trả về định dạng JSON.`,
       config: {
         responseMimeType: "application/json",
@@ -62,7 +75,7 @@ export const aiService = {
             bio: { type: Type.STRING },
             status: { type: Type.STRING },
             followers: { type: Type.STRING },
-            role: { type: Type.STRING, enum: ['Influencer', 'Expert', 'Reviewer', 'Ambassador', 'Legend'] },
+            role: { type: Type.STRING, enum: ['Influencer', 'Expert', 'Reviewer', 'Ambassador', 'Legend', 'Mythical'] },
             skills: {
               type: Type.ARRAY,
               items: {
@@ -83,7 +96,21 @@ export const aiService = {
     });
 
     const response = await model;
-    return JSON.parse(response.text);
+    const result = JSON.parse(response.text);
+    
+    // Combine AI skills with inherited skills and add level
+    const finalSkills = [...inheritedSkills, ...result.skills.map((s: any) => ({ ...s, level: isBreakthrough ? 50 : 1 }))];
+    
+    return {
+      ...result,
+      skills: finalSkills,
+      generation,
+      isBreakthrough,
+      parents: parents?.map(p => p.id),
+      level: isBreakthrough ? 10 : 1,
+      experience: 0,
+      rankPoints: isBreakthrough ? 500 : 0
+    };
   },
 
   /**

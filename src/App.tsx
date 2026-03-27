@@ -96,11 +96,90 @@ export default function App() {
     
     if (!collection.find(p => p.id === product.id)) {
       setCollection([product, ...collection]);
+      
+      // Passive XP gain for the KOL who promoted the product
+      handleCultivate(product.kolInfo.id);
     }
   };
 
+  const handleCultivate = (kolId: string) => {
+    const xpGain = Math.floor(Math.random() * 150) + 50;
+    const rpGain = Math.floor(Math.random() * 30) + 10;
+
+    const mythicalCount = allKOLs.filter(k => k.role === 'Mythical').length;
+    const celestialUnlocked = mythicalCount >= 100;
+
+    const updateKOL = (kol: KOLInfo): KOLInfo => {
+      let newExp = (kol.experience || 0) + xpGain;
+      let newLevel = kol.level || 1;
+      let newRankPoints = (kol.rankPoints || 0) + rpGain;
+      let newRole = kol.role;
+
+      // Level up logic
+      if (newExp >= 1000) {
+        newLevel += 1;
+        newExp -= 1000;
+      }
+
+      // Rank up logic
+      const roles: KOLInfo['role'][] = [
+        'Influencer', 'Expert', 'Reviewer', 'Ambassador', 'Legend', 'Mythical', 
+        'Celestial', 'Godlike', 'Eternal', 'Universal'
+      ];
+      
+      if (newRankPoints >= 1000) {
+        const currentIndex = roles.indexOf(newRole);
+        let canRankUp = true;
+        
+        // Lock progression at Mythical if not enough Mythicals in the world
+        if (newRole === 'Mythical' && !celestialUnlocked) {
+          canRankUp = false;
+        }
+
+        if (canRankUp && currentIndex < roles.length - 1) {
+          newRole = roles[currentIndex + 1];
+          newRankPoints -= 1000;
+        }
+      }
+
+      return {
+        ...kol,
+        level: newLevel,
+        experience: newExp,
+        rankPoints: newRankPoints,
+        role: newRole,
+        reputation: Math.min(100, (kol.reputation || 0) + 2)
+      };
+    };
+
+    // Update customKOLs
+    setCustomKOLs(prev => prev.map(k => k.id === kolId ? updateKOL(k) : k));
+    
+    // Update products list to reflect KOL changes in UI
+    setProducts(prev => prev.map(p => {
+      if (p.kolInfo.id === kolId) {
+        return { ...p, kolInfo: updateKOL(p.kolInfo) };
+      }
+      return p;
+    }));
+
+    // Update collection to reflect KOL changes
+    setCollection(prev => prev.map(p => {
+      if (p.kolInfo.id === kolId) {
+        return { ...p, kolInfo: updateKOL(p.kolInfo) };
+      }
+      return p;
+    }));
+  };
+
   const handleAddKOL = (newKOL: KOLInfo) => {
+    const mythicalCountBefore = allKOLs.filter(k => k.role === 'Mythical').length;
     setCustomKOLs([newKOL, ...customKOLs]);
+    
+    const mythicalCountAfter = [...allKOLs, newKOL].filter(k => k.role === 'Mythical').length;
+    if (mythicalCountBefore < 100 && mythicalCountAfter >= 100) {
+      alert("THẾ GIỚI ĐÃ THĂNG HOA! Tầng thứ Celestial đã được mở khóa cho toàn bộ KOL!");
+    }
   };
 
   const allKOLs = [...KOLS, ...customKOLs];
@@ -190,6 +269,7 @@ export default function App() {
         setShowCharacterModal={setShowCharacterModal}
         setShowKOLModal={setShowKOLModal}
         collectionCount={collection.length}
+        worldMythicalCount={allKOLs.filter(k => k.role === 'Mythical').length}
         connectWallet={connectWallet}
         walletAddress={walletAddress}
         walletError={walletError}
@@ -201,6 +281,8 @@ export default function App() {
         isOpen={showKOLModal}
         onClose={() => setShowKOLModal(false)}
         onAdd={handleAddKOL}
+        existingKOLs={allKOLs}
+        totalKOLCount={allKOLs.length}
       />
       <CreateProductModal 
         isOpen={showCreateModal} 
@@ -258,6 +340,7 @@ export default function App() {
               onGenerateKOLAvatar={generateKOLAvatar}
               onGenerateKOLVideo={generateKOLVideo}
               onGenerateKOLVoice={generateKOLVoice}
+              onCultivate={handleCultivate}
             />
           </div>
         ))}
