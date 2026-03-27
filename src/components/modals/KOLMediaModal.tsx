@@ -12,22 +12,50 @@ interface KOLMediaModalProps {
   isOpen: boolean;
   onClose: () => void;
   kol: KOLInfo;
-  onGenerateImage: (prompt: string, options?: { aspectRatio?: string }) => Promise<string | null>;
-  onGenerateVideo: (prompt: string) => Promise<string | null>;
-  onGenerateVoice: (text: string) => Promise<string | null>;
+  onGenerateImage: (prompt: string, options?: { aspectRatio?: string; referenceImage?: string }) => Promise<string | null>;
+  onGenerateVideo: (prompt: string, referenceImage?: string) => Promise<string | null>;
+  onGenerateVoice: (text: string, style?: string) => Promise<string | null>;
 }
 
 const KOLMediaModal = ({ isOpen, onClose, kol, onGenerateImage, onGenerateVideo, onGenerateVoice }: KOLMediaModalProps) => {
-  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'voice'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'voice' | 'mimic'>('image');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
   const [isFullBody, setIsFullBody] = useState(false);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [mimicStyle, setMimicStyle] = useState('Huyền bí');
+  const [mimicType, setMimicType] = useState<'style' | 'trend' | 'persona'>('style');
+  const [selectedTrend, setSelectedTrend] = useState('Wes Anderson');
+  const [selectedPersona, setSelectedPersona] = useState('Hacker Tương Lai');
+
+  const trends = [
+    { id: 'Wes Anderson', label: 'Wes Anderson Style', prompt: 'Symmetrical composition, pastel colors, whimsical atmosphere, Wes Anderson aesthetic.' },
+    { id: 'Anime', label: 'Anime Transformation', prompt: 'High-quality anime style, vibrant colors, expressive features, Studio Ghibli inspired.' },
+    { id: 'Cyberpunk', label: 'Cyberpunk Neon', prompt: 'Heavy neon lighting, rainy streets, high-tech low-life, futuristic cyberpunk aesthetic.' },
+    { id: 'Old Film', label: 'Phim Cổ Điển', prompt: 'Black and white, grainy texture, 1940s film noir aesthetic, dramatic lighting.' }
+  ];
+
+  const personas = [
+    { id: 'Hacker Tương Lai', label: 'Hacker Tương Lai', bio: 'Một chuyên gia bảo mật mạng sống trong thế giới ngầm kỹ thuật số.' },
+    { id: 'Triết Gia Cổ Đại', label: 'Triết Gia Cổ Đại', bio: 'Một hiền triết với những lời khuyên sâu sắc về cuộc sống và vũ trụ.' },
+    { id: 'Chiến Binh Rồng', label: 'Chiến Binh Rồng', bio: 'Một chiến binh dũng cảm với sức mạnh của rồng thiêng.' },
+    { id: 'Thần Thần Bí', label: 'Thần Thần Bí', bio: 'Một thực thể bí ẩn nắm giữ những bí mật của thời gian.' }
+  ];
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReferenceImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleGenerate = async () => {
-    if (!prompt && activeTab !== 'voice') return;
+    if (!prompt && activeTab !== 'voice' && activeTab !== 'mimic') return;
     setIsGenerating(true);
     setResultUrl(null);
     try {
@@ -36,12 +64,32 @@ const KOLMediaModal = ({ isOpen, onClose, kol, onGenerateImage, onGenerateVideo,
         const fullBodyPrompt = isFullBody ? "full body shot, standing, from head to toe, " : "portrait avatar, ";
         url = await onGenerateImage(
           prompt || `A high-quality ${fullBodyPrompt} cyberpunk xianxia character for ${kol.name}, ${kol.bio}`,
-          { aspectRatio: isFullBody ? "3:4" : "1:1" }
+          { aspectRatio: isFullBody ? "3:4" : "1:1", referenceImage: referenceImage || undefined }
         );
       } else if (activeTab === 'video') {
-        url = await onGenerateVideo(prompt || `A cinematic 5-second clip of ${kol.name} performing a mystical technique in a neon-lit temple.`);
+        url = await onGenerateVideo(
+          prompt || `A cinematic 5-second clip of ${kol.name} performing a mystical technique in a neon-lit temple.`,
+          referenceImage || undefined
+        );
       } else if (activeTab === 'voice') {
-        url = await onGenerateVoice(prompt || `Chào mọi người, tôi là ${kol.name}. Rất vui được đồng hành cùng các bạn trong thế giới Tiên Hiệp Cyberpunk này.`);
+        url = await onGenerateVoice(
+          prompt || `Chào mọi người, tôi là ${kol.name}. Rất vui được đồng hành cùng các bạn trong thế giới Tiên Hiệp Cyberpunk này.`,
+          mimicStyle
+        );
+      } else if (activeTab === 'mimic') {
+        let mimicPrompt = "";
+        if (mimicType === 'style') {
+          mimicPrompt = `Mimic the style, pose, and lighting of the reference image but apply it to the character ${kol.name} (${kol.bio}). High quality, cinematic.`;
+          url = await onGenerateImage(mimicPrompt, { referenceImage: referenceImage || undefined });
+        } else if (mimicType === 'trend') {
+          const trend = trends.find(t => t.id === selectedTrend);
+          mimicPrompt = `A cinematic image of ${kol.name} in the ${trend?.label} trend. ${trend?.prompt}. High quality.`;
+          url = await onGenerateImage(mimicPrompt);
+        } else if (mimicType === 'persona') {
+          const persona = personas.find(p => p.id === selectedPersona);
+          mimicPrompt = `A cinematic image of ${kol.name} acting as a ${persona?.label}. ${persona?.bio}. High quality.`;
+          url = await onGenerateImage(mimicPrompt);
+        }
       }
       setResultUrl(url);
     } catch (error) {
@@ -86,11 +134,12 @@ const KOLMediaModal = ({ isOpen, onClose, kol, onGenerateImage, onGenerateVideo,
             </div>
 
             {/* Tabs */}
-            <div className="flex px-8 pt-6 gap-2">
+            <div className="flex px-8 pt-6 gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {[
                 { id: 'image', icon: ImageIcon, label: 'Hình Ảnh' },
                 { id: 'video', icon: Video, label: 'Video' },
-                { id: 'voice', icon: Mic, label: 'Giọng Nói' }
+                { id: 'voice', icon: Mic, label: 'Giọng Nói' },
+                { id: 'mimic', icon: Sparkles, label: 'Bắt Chước' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -128,18 +177,125 @@ const KOLMediaModal = ({ isOpen, onClose, kol, onGenerateImage, onGenerateVideo,
                   className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all resize-none"
                 />
                 
-                {activeTab === 'image' && (
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/10">
-                    <input 
-                      type="checkbox" 
-                      id="fullBody" 
-                      checked={isFullBody}
-                      onChange={(e) => setIsFullBody(e.target.checked)}
-                      className="w-5 h-5 rounded bg-slate-800 border-white/20 text-cyan-500 focus:ring-cyan-500"
-                    />
-                    <label htmlFor="fullBody" className="text-[10px] font-black uppercase tracking-widest text-white/60 cursor-pointer">
-                      Tạo ảnh toàn thân (Full Body)
-                    </label>
+                {activeTab === 'voice' && (
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-white/40">Sắc thái giọng nói</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['Hài hước', 'Nghiêm túc', 'Huyền bí', 'Năng lượng', 'Dịu dàng'].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setMimicStyle(s)}
+                          className={`py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                            mimicStyle === s ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(activeTab === 'mimic' || activeTab === 'image' || activeTab === 'video') && (
+                  <div className="space-y-6">
+                    {activeTab === 'mimic' && (
+                      <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/5">
+                        {[
+                          { id: 'style', label: 'Style' },
+                          { id: 'trend', label: 'Trend' },
+                          { id: 'persona', label: 'Persona' }
+                        ].map(type => (
+                          <button
+                            key={type.id}
+                            onClick={() => setMimicType(type.id as any)}
+                            className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                              mimicType === type.id ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'
+                            }`}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {activeTab === 'mimic' && mimicType === 'trend' && (
+                      <div className="space-y-3">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-white/40">Chọn Xu Hướng</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {trends.map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => setSelectedTrend(t.id)}
+                              className={`p-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all text-left ${
+                                selectedTrend === t.id ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
+                              }`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === 'mimic' && mimicType === 'persona' && (
+                      <div className="space-y-3">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-white/40">Chọn Nhân Vật</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {personas.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => setSelectedPersona(p.id)}
+                              className={`p-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all text-left ${
+                                selectedPersona === p.id ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(activeTab === 'image' || activeTab === 'video' || (activeTab === 'mimic' && mimicType === 'style')) && (
+                      <div className="space-y-4">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-white/40">
+                          {activeTab === 'mimic' ? 'Hình ảnh tham chiếu (Style Reference)' : 'Hình ảnh tham chiếu (Tùy chọn)'}
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-24 h-24 rounded-2xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center overflow-hidden group">
+                            {referenceImage ? (
+                              <>
+                                <img src={referenceImage} className="w-full h-full object-cover" alt="Ref" />
+                                <button 
+                                  onClick={() => setReferenceImage(null)}
+                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </>
+                            ) : (
+                              <div className="text-center">
+                                <ImageIcon size={20} className="text-white/20 mx-auto mb-1" />
+                                <span className="text-[8px] text-white/20 font-black uppercase">Upload</span>
+                              </div>
+                            )}
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleFileUpload}
+                              className="absolute inset-0 opacity-0 cursor-pointer" 
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[10px] text-white/40 leading-relaxed">
+                              {activeTab === 'mimic' 
+                                ? "Tải lên một hình ảnh để KOL bắt chước tư thế, phong cách nghệ thuật hoặc ánh sáng."
+                                : "Tải lên hình ảnh để AI có thêm ngữ cảnh về bối cảnh hoặc trang phục."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

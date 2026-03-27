@@ -89,10 +89,22 @@ export const aiService = {
   /**
    * Generates an image for a KOL.
    */
-  generateImage: async (prompt: string, aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1") => {
+  generateImage: async (prompt: string, aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1", referenceImage?: string) => {
+    const parts: any[] = [{ text: prompt }];
+    if (referenceImage) {
+      const base64Data = referenceImage.split(',')[1];
+      const mimeType = referenceImage.split(';')[0].split(':')[1];
+      parts.push({
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType
+        }
+      });
+    }
+
     const model = genAI.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: prompt }] },
+      contents: { parts },
       config: { imageConfig: { aspectRatio } },
     });
 
@@ -108,12 +120,23 @@ export const aiService = {
   /**
    * Generates a video for a KOL.
    */
-  generateVideo: async (prompt: string) => {
-    let operation = await genAI.models.generateVideos({
+  generateVideo: async (prompt: string, referenceImage?: string) => {
+    const config: any = {
       model: 'veo-3.1-fast-generate-preview',
       prompt,
       config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-    });
+    };
+
+    if (referenceImage) {
+      const base64Data = referenceImage.split(',')[1];
+      const mimeType = referenceImage.split(';')[0].split(':')[1];
+      config.image = {
+        imageBytes: base64Data,
+        mimeType: mimeType
+      };
+    }
+
+    let operation = await genAI.models.generateVideos(config);
 
     while (!operation.done) {
       await new Promise(resolve => setTimeout(resolve, 5000));
@@ -135,10 +158,26 @@ export const aiService = {
   /**
    * Generates a voice for a KOL.
    */
-  generateVoice: async (text: string, voiceName: 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Zephyr' = 'Kore') => {
+  generateVoice: async (text: string, style: string = 'Dịu dàng') => {
+    const voiceMap: Record<string, 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Zephyr'> = {
+      'Hài hước': 'Puck',
+      'Nghiêm túc': 'Charon',
+      'Huyền bí': 'Fenrir',
+      'Năng lượng': 'Zephyr',
+      'Dịu dàng': 'Kore'
+    };
+    const voiceName = voiceMap[style] || 'Kore';
+    const stylePrompt = {
+      'Hài hước': 'Say humorously and playfully: ',
+      'Nghiêm túc': 'Say seriously and professionally: ',
+      'Huyền bí': 'Say mysteriously and enigmatically: ',
+      'Năng lượng': 'Say energetically and enthusiastically: ',
+      'Dịu dàng': 'Say gently and kindly: '
+    }[style] || 'Say: ';
+
     const response = await genAI.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }],
+      contents: [{ parts: [{ text: `${stylePrompt}${text}` }] }],
       config: {
         responseModalities: ["AUDIO" as any],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },

@@ -120,16 +120,16 @@ export default function App() {
     }
   };
 
-  const generateKOLAvatar = async (prompt: string, options?: { aspectRatio?: string }) => {
-    return aiService.generateImage(prompt, options?.aspectRatio as any);
+  const generateKOLAvatar = async (prompt: string, options?: { aspectRatio?: string; referenceImage?: string }) => {
+    return aiService.generateImage(prompt, options?.aspectRatio as any, options?.referenceImage);
   };
 
-  const generateKOLVideo = async (prompt: string) => {
-    return aiService.generateVideo(prompt);
+  const generateKOLVideo = async (prompt: string, referenceImage?: string) => {
+    return aiService.generateVideo(prompt, referenceImage);
   };
 
-  const generateKOLVoice = async (text: string) => {
-    return aiService.generateVoice(text);
+  const generateKOLVoice = async (text: string, style?: string) => {
+    return aiService.generateVoice(text, style);
   };
 
   const scrollToProduct = (index: number) => {
