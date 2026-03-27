@@ -29,7 +29,7 @@ const CategorySelector = ({
   };
 
   return (
-    <div className="absolute top-8 left-10 z-[60] flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 shadow-2xl">
         <button 
           onClick={() => scroll('left')}

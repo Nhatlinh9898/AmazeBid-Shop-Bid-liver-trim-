@@ -13,7 +13,7 @@ import { ProductContent, ProductType, RarityType } from './types';
 import { generateProducts } from './constants';
 
 // Components
-import CategorySelector from './components/CategorySelector';
+import NavigationDock from './components/NavigationDock';
 import XianxiaDisplay from './components/XianxiaDisplay';
 
 // Modals
@@ -128,6 +128,7 @@ export default function App() {
         }
       });
       
+      console.log("AI Response:", response.text);
       const data = JSON.parse(response.text);
       return data;
     } catch (error) {
@@ -251,85 +252,25 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 bg-black text-white font-sans overflow-hidden">
-      {/* Category Selector */}
-      <CategorySelector 
-        categories={categories} 
-        activeCategory={activeCategory} 
-        setActiveCategory={setActiveCategory} 
+      {/* Complete Navigation Menu */}
+      <NavigationDock
+        categories={categories}
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        showGrid={showGrid}
+        setShowGrid={setShowGrid}
+        setShowCreateModal={setShowCreateModal}
+        setShowStatsModal={setShowStatsModal}
+        setShowCollectionModal={setShowCollectionModal}
+        setShowCharacterModal={setShowCharacterModal}
+        collectionCount={collection.length}
+        connectWallet={connectWallet}
+        walletAddress={walletAddress}
+        walletError={walletError}
+        setWalletError={setWalletError}
       />
-
-      {/* Search & Grid Toggle */}
-      <div className="absolute top-[88px] left-10 z-[60] flex items-center gap-3">
-        <div className="relative">
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm sản phẩm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-2xl px-5 py-2 text-[10px] text-white focus:outline-none focus:border-white/40 transition-all w-[180px] lg:w-[240px] h-10"
-          />
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" size={12} />
-        </div>
-        <button 
-          onClick={() => setShowGrid(!showGrid)}
-          className="w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
-          title="Thư viện"
-        >
-          {showGrid ? <X size={18} /> : <LayoutGrid size={18} />}
-        </button>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-white/90 transition-all shadow-2xl"
-          title="Thêm mới"
-        >
-          <Plus size={18} />
-        </button>
-        <div className="w-px h-6 bg-white/10 mx-1" />
-        <button 
-          onClick={() => setShowStatsModal(true)}
-          className="w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
-          title="Thống kê"
-        >
-          <BarChart3 size={18} />
-        </button>
-        <button 
-          onClick={() => setShowCollectionModal(true)}
-          className="relative w-10 h-10 rounded-2xl bg-slate-900/80 backdrop-blur-2xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-2xl"
-          title="Bộ sưu tập"
-        >
-          <ShoppingBag size={18} />
-          {collection.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-500 rounded-full text-[8px] font-black flex items-center justify-center text-black">
-              {collection.length}
-            </span>
-          )}
-        </button>
-
-        <div className="w-px h-6 bg-white/10 mx-1" />
-
-        <button 
-          onClick={connectWallet}
-          className={`h-10 px-4 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all shadow-2xl border ${
-            walletAddress 
-              ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' 
-              : 'bg-slate-900/80 text-white/60 border-white/10 hover:text-white'
-          }`}
-        >
-          <Zap size={14} className={walletAddress ? 'fill-emerald-500' : ''} />
-          {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Kết Nối Ví'}
-        </button>
-
-        {walletError && (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="absolute top-12 left-0 bg-red-500/90 backdrop-blur-md text-white text-[9px] font-bold px-4 py-2 rounded-xl border border-red-500/20 shadow-2xl flex items-center gap-2 z-[70]"
-          >
-            <X size={12} className="cursor-pointer" onClick={() => setWalletError(null)} />
-            {walletError}
-          </motion.div>
-        )}
-      </div>
 
       {/* Modals */}
       <CreateProductModal 

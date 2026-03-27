@@ -69,7 +69,7 @@ const CreateProductModal = ({ isOpen, onClose, onAdd, onGenerateAI, isGenerating
       materials: ["Bí Ẩn"],
       hiddenStats: [
         { label: "Độ Hiếm", value: rarityInfo.rarity },
-        { label: "Linh Lực", value: aiData?.spirit || "???" }
+        { label: "Linh Lực", value: aiData?.spirit?.toString() || "???" }
       ],
       abilities: aiData?.ability ? [aiData.ability] : [
         { name: "Kỹ Năng Cơ Bản", description: "Kỹ năng mặc định của vật phẩm.", cooldown: "10s", manaCost: 20 }
@@ -78,8 +78,8 @@ const CreateProductModal = ({ isOpen, onClose, onAdd, onGenerateAI, isGenerating
         price: finalPrice,
         description: aiData?.lore || "Thông tin chi tiết đang được cập nhật.",
         stats: [
-          { label: "Công Kích", value: aiData?.attack || "???" },
-          { label: "Tốc Độ", value: aiData?.speed || "???" },
+          { label: "Công Kích", value: aiData?.attack?.toString() || "???" },
+          { label: "Tốc Độ", value: aiData?.speed?.toString() || "???" },
           { label: "Nguồn Gốc", value: "Hệ Thống AI" }
         ]
       }
