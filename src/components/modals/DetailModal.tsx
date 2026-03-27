@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CheckCircle2, ShoppingBag, Zap } from 'lucide-react';
+import { X, CheckCircle2, ShoppingBag, Zap, LayoutGrid } from 'lucide-react';
 import { ProductContent } from '../../types';
 
 interface DetailModalProps {
@@ -169,8 +169,46 @@ const DetailModal = ({ isOpen, onClose, content, onBuy, isOwned, onCultivate }: 
                           <p className="text-[8px] text-white/30 mt-1">
                             {content.kolInfo.role === 'Mythical' 
                               ? 'Cần 100 Mythical KOLs toàn cầu để mở khóa Celestial' 
-                              : 'Cần 1000 để thăng hạng'}
+                              : `Cần ${Math.floor(1000 * Math.pow(1.5, ['Influencer', 'Expert', 'Reviewer', 'Ambassador', 'Legend', 'Mythical', 'Celestial', 'Godlike', 'Eternal', 'Universal'].indexOf(content.kolInfo.role)))} để thăng hạng`}
                           </p>
+                        </div>
+                      </div>
+
+                      {/* Resources & Evolution Tasks */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <p className="text-[9px] uppercase tracking-widest text-white/40 mb-3 flex items-center gap-2">
+                            <Zap className="w-3 h-3 text-cyan-400" /> Tài Nguyên
+                          </p>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-white/60">Linh Khí</span>
+                              <span className="text-[10px] font-bold text-cyan-400">{content.kolInfo.resources.spiritEssence}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-white/60">Cyber Chips</span>
+                              <span className="text-[10px] font-bold text-purple-400">{content.kolInfo.resources.cyberChips}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-white/60">Fame Tokens</span>
+                              <span className="text-[10px] font-bold text-yellow-400">{content.kolInfo.resources.fameTokens}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <p className="text-[9px] uppercase tracking-widest text-white/40 mb-3 flex items-center gap-2">
+                            <LayoutGrid className="w-3 h-3 text-purple-400" /> Nhiệm Vụ
+                          </p>
+                          <div className="space-y-2">
+                            {content.kolInfo.evolutionTasks.map((task, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${task.isCompleted ? 'bg-green-500' : 'bg-white/20'}`} />
+                                <span className={`text-[9px] ${task.isCompleted ? 'text-white/30 line-through' : 'text-white/70'}`}>
+                                  {task.description}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
@@ -182,7 +220,7 @@ const DetailModal = ({ isOpen, onClose, content, onBuy, isOwned, onCultivate }: 
                           className={`flex-1 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[10px] py-3 rounded-xl transition-all flex items-center justify-center gap-2 group uppercase tracking-widest ${isCultivating ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Zap className={`w-4 h-4 fill-current transition-transform ${isCultivating ? 'animate-spin' : 'group-hover:scale-125'}`} />
-                          {isCultivating ? 'ĐANG TU LUYỆN...' : 'TU LUYỆN'}
+                          {isCultivating ? 'ĐANG TU LUYỆN...' : 'TU LUYỆN (10 SPIRIT)'}
                         </button>
                         <button className="flex-1 bg-white/10 hover:bg-white/20 text-white font-black text-[10px] py-3 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest">
                           <CheckCircle2 className="w-4 h-4" />

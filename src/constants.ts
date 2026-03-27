@@ -24,7 +24,12 @@ export const KOLS: KOLInfo[] = [
     generation: 1,
     level: 5,
     experience: 250,
-    rankPoints: 100
+    rankPoints: 100,
+    resources: { spiritEssence: 500, cyberChips: 200, fameTokens: 50 },
+    evolutionTasks: [
+      { description: "Đạt cấp độ 10", isCompleted: false, type: 'level', target: 10 },
+      { description: "Sở hữu 3 vật phẩm", isCompleted: false, type: 'items', target: 3 }
+    ]
   },
   {
     id: "kol-2",
@@ -44,7 +49,12 @@ export const KOLS: KOLInfo[] = [
     generation: 1,
     level: 8,
     experience: 600,
-    rankPoints: 450
+    rankPoints: 450,
+    resources: { spiritEssence: 1200, cyberChips: 600, fameTokens: 150 },
+    evolutionTasks: [
+      { description: "Đạt cấp độ 15", isCompleted: false, type: 'level', target: 15 },
+      { description: "Đạt 95% danh tiếng", isCompleted: false, type: 'reputation', target: 95 }
+    ]
   },
   {
     id: "kol-3",
@@ -64,7 +74,12 @@ export const KOLS: KOLInfo[] = [
     generation: 1,
     level: 12,
     experience: 1200,
-    rankPoints: 800
+    rankPoints: 800,
+    resources: { spiritEssence: 3000, cyberChips: 1500, fameTokens: 500 },
+    evolutionTasks: [
+      { description: "Đạt cấp độ 20", isCompleted: false, type: 'level', target: 20 },
+      { description: "Sở hữu 10 vật phẩm", isCompleted: false, type: 'items', target: 10 }
+    ]
   },
   {
     id: "kol-4",
@@ -84,7 +99,12 @@ export const KOLS: KOLInfo[] = [
     generation: 1,
     level: 7,
     experience: 450,
-    rankPoints: 300
+    rankPoints: 300,
+    resources: { spiritEssence: 800, cyberChips: 400, fameTokens: 80 },
+    evolutionTasks: [
+      { description: "Đạt cấp độ 12", isCompleted: false, type: 'level', target: 12 },
+      { description: "Đạt 92% danh tiếng", isCompleted: false, type: 'reputation', target: 92 }
+    ]
   }
 ];
 

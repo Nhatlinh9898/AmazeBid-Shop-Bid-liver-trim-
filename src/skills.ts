@@ -153,7 +153,11 @@ export const SKILL_POOL: KOLSkill[] = [
   { name: "Vạn Cổ Bất Diệt", description: "Khả năng duy trì danh tiếng vĩnh cửu, không bao giờ bị lãng quên.", effect: "Eternal Fame", cooldown: "Passive", level: 1 },
   { name: "Chưởng Quản Càn Khôn", description: "Thao túng xu hướng toàn cầu bằng ý nghĩ.", effect: "Universal Control", cooldown: "120s", level: 1 },
   { name: "Hư Không Chân Thân", description: "Hiện diện ở mọi nền tảng cùng lúc với sức mạnh tối đa.", effect: "Omnipresence", cooldown: "Passive", level: 1 },
-  { name: "Thiên Đạo Chân Lý", description: "Lời nói trở thành chân lý, định hình lại thực tại kỹ thuật số.", effect: "Reality Warp", cooldown: "300s", level: 1 }
+  { name: "Thiên Đạo Chân Lý", description: "Lời nói trở thành chân lý, định hình lại thực tại kỹ thuật số.", effect: "Reality Warp", cooldown: "300s", level: 1 },
+  { name: "Linh Khí Hồi Tụ", description: "Tăng 50% lượng Linh Khí nhận được từ mọi nguồn.", effect: "+50% Spirit Gain", cooldown: "Passive", level: 1 },
+  { name: "Cyber Mining", description: "Tự động tạo ra Cyber Chips mỗi khi thực hiện giao dịch.", effect: "Auto-Chips", cooldown: "Passive", level: 1 },
+  { name: "Nhiệm Vụ Thần Tốc", description: "Giảm 20% yêu cầu của các Nhiệm Vụ Tiến Hóa.", effect: "-20% Task Req", cooldown: "Passive", level: 1 },
+  { name: "Danh Tiếng Vang Dội", description: "Tăng gấp đôi lượng Fame Tokens nhận được khi bán hàng.", effect: "x2 Fame Tokens", cooldown: "Passive", level: 1 }
 ];
 
 // Hàm lấy ngẫu nhiên kỹ năng từ pool

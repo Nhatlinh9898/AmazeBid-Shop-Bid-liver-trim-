@@ -35,6 +35,17 @@ export interface KOLInfo {
   level: number;
   experience: number;
   rankPoints: number;
+  resources: {
+    spiritEssence: number;
+    cyberChips: number;
+    fameTokens: number;
+  };
+  evolutionTasks: {
+    description: string;
+    isCompleted: boolean;
+    type: 'level' | 'items' | 'reputation' | 'sales';
+    target: number;
+  }[];
 }
 
 export interface Ability {

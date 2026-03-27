@@ -109,7 +109,17 @@ export const aiService = {
       parents: parents?.map(p => p.id),
       level: isBreakthrough ? 10 : 1,
       experience: 0,
-      rankPoints: isBreakthrough ? 500 : 0
+      rankPoints: isBreakthrough ? 500 : 0,
+      resources: {
+        spiritEssence: isBreakthrough ? 1000 : 100,
+        cyberChips: isBreakthrough ? 500 : 50,
+        fameTokens: isBreakthrough ? 200 : 20
+      },
+      evolutionTasks: [
+        { description: "Đạt cấp độ 20", isCompleted: false, type: 'level', target: 20 },
+        { description: "Sở hữu 5 vật phẩm", isCompleted: false, type: 'items', target: 5 },
+        { description: "Đạt 90% danh tiếng", isCompleted: false, type: 'reputation', target: 90 }
+      ]
     };
   },
 

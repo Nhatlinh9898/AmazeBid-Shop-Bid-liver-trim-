@@ -4,14 +4,15 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Types & Constants
 import { ProductContent, ProductType, RarityType, KOLInfo } from './types';
 import { generateProducts, KOLS } from './constants';
 import { aiService } from './services/aiService';
+import { integrationService, EcommerceEvent } from './services/integrationService';
 
 // Components
 import NavigationDock from './components/NavigationDock';
@@ -48,6 +49,65 @@ export default function App() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
+  const [isWidgetOpen, setIsWidgetOpen] = useState(true); // Default to open for demo, but can be closed
+
+  // Notify parent window of widget state
+  useEffect(() => {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'WIDGET_STATE', isOpen: isWidgetOpen }, '*');
+    }
+  }, [isWidgetOpen]);
+
+  // E-commerce Integration Listener
+  useEffect(() => {
+    integrationService.setupExternalListener((action: EcommerceEvent, payload: any) => {
+      setSyncStatus('syncing');
+      
+      // Find the KOL to reward
+      const currentAllKOLs = [...KOLS, ...customKOLs];
+      const targetKOLId = payload.kolId || (currentAllKOLs.length > 0 ? currentAllKOLs[0].id : null);
+      
+      if (targetKOLId) {
+        const rewards = integrationService.processEcommerceEvent(action, payload.amount);
+        
+        setCustomKOLs(prev => prev.map(kol => {
+          if (kol.id === targetKOLId) {
+            return applyRewards(kol, rewards);
+          }
+          return kol;
+        }));
+        
+        // Notification for the user
+        console.log(`E-commerce Action: ${action} - Rewards:`, rewards);
+      }
+      
+      setTimeout(() => setSyncStatus('synced'), 1000);
+      setTimeout(() => setSyncStatus('idle'), 3000);
+    });
+  }, [customKOLs]);
+
+  const applyRewards = (kol: KOLInfo, rewards: { xp: number, spirit: number, chips: number, tokens: number }): KOLInfo => {
+    let newExp = (kol.experience || 0) + rewards.xp;
+    let newLevel = kol.level || 1;
+    const xpReq = 1000 * Math.pow(1.2, newLevel - 1);
+    
+    if (newExp >= xpReq) {
+      newLevel += 1;
+      newExp -= xpReq;
+    }
+
+    return {
+      ...kol,
+      level: newLevel,
+      experience: newExp,
+      resources: {
+        spiritEssence: kol.resources.spiritEssence + rewards.spirit,
+        cyberChips: kol.resources.cyberChips + rewards.chips,
+        fameTokens: kol.resources.fameTokens + rewards.tokens
+      }
+    };
+  };
   
   // Filtering & Sorting State
   const [filterRarity, setFilterRarity] = useState<RarityType | 'All'>('All');
@@ -97,29 +157,58 @@ export default function App() {
     if (!collection.find(p => p.id === product.id)) {
       setCollection([product, ...collection]);
       
-      // Passive XP gain for the KOL who promoted the product
-      handleCultivate(product.kolInfo.id);
+      // Passive XP gain and Resource gain for the KOL who promoted the product
+      handleCultivate(product.kolInfo.id, true);
     }
   };
 
-  const handleCultivate = (kolId: string) => {
-    const xpGain = Math.floor(Math.random() * 150) + 50;
-    const rpGain = Math.floor(Math.random() * 30) + 10;
-
+  const handleCultivate = (kolId: string, isPassive: boolean = false) => {
     const mythicalCount = allKOLs.filter(k => k.role === 'Mythical').length;
     const celestialUnlocked = mythicalCount >= 100;
 
     const updateKOL = (kol: KOLInfo): KOLInfo => {
+      // Resource costs for manual cultivation
+      if (!isPassive) {
+        if (kol.resources.spiritEssence < 10) {
+          alert("Không đủ Linh Khí (Spirit Essence) để tu luyện!");
+          return kol;
+        }
+      }
+
+      const xpGain = Math.floor(Math.random() * 150) + 50;
+      const rpGain = Math.floor(Math.random() * 30) + 10;
+      
+      // Resource gain from activities
+      const essenceGain = isPassive ? 50 : -10;
+      const chipsGain = isPassive ? 20 : 5;
+      const tokensGain = isPassive ? 10 : 2;
+
       let newExp = (kol.experience || 0) + xpGain;
       let newLevel = kol.level || 1;
       let newRankPoints = (kol.rankPoints || 0) + rpGain;
       let newRole = kol.role;
+      
+      const newResources = {
+        spiritEssence: Math.max(0, kol.resources.spiritEssence + essenceGain),
+        cyberChips: Math.max(0, kol.resources.cyberChips + chipsGain),
+        fameTokens: Math.max(0, kol.resources.fameTokens + tokensGain)
+      };
 
-      // Level up logic
-      if (newExp >= 1000) {
+      // Scaling XP requirement
+      const xpReq = 1000 * Math.pow(1.2, newLevel - 1);
+      if (newExp >= xpReq) {
         newLevel += 1;
-        newExp -= 1000;
+        newExp -= xpReq;
       }
+
+      // Update Evolution Tasks
+      const newTasks = kol.evolutionTasks.map(task => {
+        if (task.isCompleted) return task;
+        if (task.type === 'level' && newLevel >= task.target) return { ...task, isCompleted: true };
+        if (task.type === 'reputation' && kol.reputation >= task.target) return { ...task, isCompleted: true };
+        if (task.type === 'items' && collection.filter(p => p.kolInfo.id === kol.id).length >= task.target) return { ...task, isCompleted: true };
+        return task;
+      });
 
       // Rank up logic
       const roles: KOLInfo['role'][] = [
@@ -127,10 +216,20 @@ export default function App() {
         'Celestial', 'Godlike', 'Eternal', 'Universal'
       ];
       
-      if (newRankPoints >= 1000) {
+      const rpReq = 1000 * Math.pow(1.5, roles.indexOf(newRole));
+      const resourceReq = 500 * Math.pow(2, roles.indexOf(newRole));
+
+      if (newRankPoints >= rpReq) {
         const currentIndex = roles.indexOf(newRole);
         let canRankUp = true;
         
+        // Check tasks
+        const allTasksDone = newTasks.every(t => t.isCompleted);
+        if (!allTasksDone) canRankUp = false;
+
+        // Check resources for ranking up
+        if (newResources.fameTokens < resourceReq) canRankUp = false;
+
         // Lock progression at Mythical if not enough Mythicals in the world
         if (newRole === 'Mythical' && !celestialUnlocked) {
           canRankUp = false;
@@ -138,7 +237,16 @@ export default function App() {
 
         if (canRankUp && currentIndex < roles.length - 1) {
           newRole = roles[currentIndex + 1];
-          newRankPoints -= 1000;
+          newRankPoints -= rpReq;
+          newResources.fameTokens -= resourceReq;
+          
+          // Add new tasks for next rank
+          newTasks.push({
+            description: `Đạt cấp độ ${newLevel + 10}`,
+            isCompleted: false,
+            type: 'level',
+            target: newLevel + 10
+          });
         }
       }
 
@@ -148,7 +256,9 @@ export default function App() {
         experience: newExp,
         rankPoints: newRankPoints,
         role: newRole,
-        reputation: Math.min(100, (kol.reputation || 0) + 2)
+        resources: newResources,
+        evolutionTasks: newTasks,
+        reputation: Math.min(100, (kol.reputation || 0) + (isPassive ? 5 : 1))
       };
     };
 
@@ -253,7 +363,56 @@ export default function App() {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black text-white font-sans overflow-hidden">
+    <>
+      {/* Vertical Side Tab Toggle */}
+      <motion.button
+        initial={{ x: 100 }}
+        animate={{ x: isWidgetOpen ? 450 : 0 }} // Slide with the panel if open, or stay at edge
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        onClick={() => setIsWidgetOpen(!isWidgetOpen)}
+        className="fixed top-1/2 -translate-y-1/2 right-0 z-[2000] flex items-center group"
+      >
+        <div className="bg-cyan-500 hover:bg-cyan-400 transition-colors px-2 py-6 rounded-l-2xl shadow-[-10px_0_20px_rgba(34,211,238,0.3)] flex flex-col items-center gap-4 border-y border-l border-white/20">
+          <div className="relative">
+            {isWidgetOpen ? <X className="w-5 h-5 text-black" /> : <Users className="w-5 h-5 text-black" />}
+            {!isWidgetOpen && (
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-cyan-500" 
+              />
+            )}
+          </div>
+          <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black uppercase tracking-[0.3em] text-black whitespace-nowrap">
+            {isWidgetOpen ? 'Đóng Hệ Thống' : 'Hệ Thống KOL'}
+          </span>
+        </div>
+      </motion.button>
+
+      <AnimatePresence>
+        {isWidgetOpen && (
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 sm:left-auto sm:w-[450px] bg-black text-white font-sans overflow-hidden z-[1500] shadow-[-20px_0_50px_rgba(0,0,0,0.5)] border-l border-white/10"
+          >
+            {/* Sync Status Indicator */}
+      {syncStatus !== 'idle' && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-20 right-10 z-[1000] flex items-center gap-3 px-4 py-2 rounded-full bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-2xl"
+        >
+          <div className={`w-2 h-2 rounded-full ${syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-400'}`} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
+            {syncStatus === 'syncing' ? 'Đang đồng bộ E-commerce...' : 'Đã đồng bộ thành công'}
+          </span>
+        </motion.div>
+      )}
+
       {/* Complete Navigation Menu */}
       <NavigationDock
         categories={categories}
@@ -372,6 +531,9 @@ export default function App() {
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
