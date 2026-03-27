@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X, Menu, ChevronUp, ChevronDown, Home, User } from 'lucide-react';
+import { Search, LayoutGrid, Plus, BarChart3, ShoppingBag, Zap, X, Menu, ChevronUp, ChevronDown, Home, User, Users } from 'lucide-react';
 import CategorySelector from './CategorySelector';
 import { ProductType } from '../types';
 
@@ -21,6 +21,7 @@ interface NavigationDockProps {
   setShowStatsModal: (s: boolean) => void;
   setShowCollectionModal: (s: boolean) => void;
   setShowCharacterModal: (s: boolean) => void;
+  setShowKOLModal: (s: boolean) => void;
   collectionCount: number;
   connectWallet: () => void;
   walletAddress: string | null;
@@ -40,6 +41,7 @@ const NavigationDock = ({
   setShowStatsModal,
   setShowCollectionModal,
   setShowCharacterModal,
+  setShowKOLModal,
   collectionCount,
   connectWallet,
   walletAddress,
@@ -151,6 +153,15 @@ const NavigationDock = ({
                 title="Nhân vật"
               >
                 <User size={18} />
+              </button>
+
+              {/* KOL Creator Button */}
+              <button 
+                onClick={() => setShowKOLModal(true)}
+                className="w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                title="Tạo KOL"
+              >
+                <Users size={18} />
               </button>
 
               <div className="w-px h-6 bg-white/10 mx-1" />

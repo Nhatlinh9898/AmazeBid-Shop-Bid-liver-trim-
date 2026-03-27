@@ -15,7 +15,12 @@ export const KOLS: KOLInfo[] = [
     followers: "1.2M",
     bio: "Chuyên gia về các loại kiếm pháp và pháp bảo tấn công.",
     specialty: ["xianxia", "tech"],
-    reputation: 95
+    reputation: 95,
+    role: 'Expert',
+    skills: [
+      { name: "Kiếm Khí Tung Hoành", description: "Tăng 20% sát thương cho các loại kiếm.", effect: "+20% Damage", cooldown: "60s", level: 85 },
+      { name: "Vạn Kiếm Quy Tông", description: "Triệu hồi hàng ngàn thanh kiếm tấn công kẻ địch.", effect: "AOE Damage", cooldown: "300s", level: 92 }
+    ]
   },
   {
     id: "kol-2",
@@ -26,7 +31,12 @@ export const KOLS: KOLInfo[] = [
     followers: "850K",
     bio: "Bậc thầy về luyện đan và chế tạo vật liệu nano.",
     specialty: ["tech", "electronics", "beauty"],
-    reputation: 88
+    reputation: 88,
+    role: 'Legend',
+    skills: [
+      { name: "Nano Reconstruction", description: "Tự động sửa chữa các thiết bị bị hỏng.", effect: "Repair", cooldown: "120s", level: 78 },
+      { name: "Quantum Synthesis", description: "Tạo ra các vật liệu hiếm từ hư không.", effect: "Resource Gen", cooldown: "600s", level: 95 }
+    ]
   },
   {
     id: "kol-3",
@@ -37,7 +47,12 @@ export const KOLS: KOLInfo[] = [
     followers: "2.5M",
     bio: "Người dẫn đầu xu hướng thời trang và phong cách sống thượng lưu.",
     specialty: ["luxury", "fashion", "beauty", "home"],
-    reputation: 92
+    reputation: 92,
+    role: 'Influencer',
+    skills: [
+      { name: "Trendsetter", description: "Tăng 50% khả năng bán được hàng.", effect: "+50% Sales", cooldown: "180s", level: 98 },
+      { name: "Golden Aura", description: "Giảm 10% giá mua các mặt hàng xa xỉ.", effect: "-10% Price", cooldown: "Passive", level: 88 }
+    ]
   },
   {
     id: "kol-4",
@@ -48,7 +63,12 @@ export const KOLS: KOLInfo[] = [
     followers: "1.8M",
     bio: "Chuyên gia đánh giá các dòng xe và thiết bị thể thao.",
     specialty: ["automotive", "sports"],
-    reputation: 90
+    reputation: 90,
+    role: 'Ambassador',
+    skills: [
+      { name: "Nitro Boost", description: "Tăng tốc độ di chuyển lên 200%.", effect: "Speed x2", cooldown: "45s", level: 94 },
+      { name: "Aerodynamic Review", description: "Tăng hiệu suất khí động học cho xe.", effect: "+15% Efficiency", cooldown: "Passive", level: 82 }
+    ]
   }
 ];
 

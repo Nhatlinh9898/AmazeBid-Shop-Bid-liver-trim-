@@ -109,7 +109,7 @@ const XianxiaDisplay = ({ content, isActive, onBuy, isOwned, onGenerateKOLAvatar
           >
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50" style={{ color: content.themeColor }}>KOL Partner</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50" style={{ color: content.themeColor }}>{content.kolInfo.role} Partner</span>
                 {content.kolInfo.status === "Đang Livestream" && (
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}

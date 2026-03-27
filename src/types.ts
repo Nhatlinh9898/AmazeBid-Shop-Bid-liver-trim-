@@ -7,6 +7,14 @@ export type ProductType = 'xianxia' | 'tech' | 'luxury' | 'fashion' | 'automotiv
 export type ElementType = 'lightning' | 'fire' | 'ice' | 'neon' | 'gold' | 'minimal';
 export type RarityType = 'Thường' | 'Hiếm' | 'Cực Hiếm' | 'Sử Thi' | 'Huyền Thoại' | 'Thần Thoại';
 
+export interface KOLSkill {
+  name: string;
+  description: string;
+  effect: string;
+  cooldown: string;
+  level: number; // 0-100
+}
+
 export interface KOLInfo {
   id: string;
   name: string;
@@ -19,6 +27,8 @@ export interface KOLInfo {
   reputation: number; // 0-100
   videoUrl?: string;
   voiceUrl?: string;
+  role: 'Influencer' | 'Expert' | 'Reviewer' | 'Ambassador' | 'Legend';
+  skills: KOLSkill[];
 }
 
 export interface Ability {

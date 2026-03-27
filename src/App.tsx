@@ -9,8 +9,9 @@ import { motion } from 'motion/react';
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Types & Constants
-import { ProductContent, ProductType, RarityType } from './types';
-import { generateProducts } from './constants';
+import { ProductContent, ProductType, RarityType, KOLInfo } from './types';
+import { generateProducts, KOLS } from './constants';
+import { aiService } from './services/aiService';
 
 // Components
 import NavigationDock from './components/NavigationDock';
@@ -21,6 +22,7 @@ import CreateProductModal from './components/modals/CreateProductModal';
 import StatsModal from './components/modals/StatsModal';
 import MyCollectionModal from './components/modals/MyCollectionModal';
 import CharacterModal from './components/modals/CharacterModal';
+import CreateKOLModal from './components/modals/CreateKOLModal';
 import GridOverlay from './components/modals/GridOverlay';
 
 declare global {
@@ -40,6 +42,8 @@ export default function App() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [showKOLModal, setShowKOLModal] = useState(false);
+  const [customKOLs, setCustomKOLs] = useState<KOLInfo[]>([]);
   const [equippedItems, setEquippedItems] = useState<ProductContent[]>([]);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
@@ -95,41 +99,18 @@ export default function App() {
     }
   };
 
+  const handleAddKOL = (newKOL: KOLInfo) => {
+    setCustomKOLs([newKOL, ...customKOLs]);
+  };
+
+  const allKOLs = [...KOLS, ...customKOLs];
+
   const generateAIContent = async (name: string, category: string) => {
     if (!name) return;
     setIsGeneratingAI(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Hãy tạo một đoạn truyền thuyết (lore) ngắn (khoảng 3 câu), các chỉ số sức mạnh (Công kích, Linh lực, Tốc độ - từ 10 đến 100), và 1 kỹ năng đặc biệt (tên, mô tả, hồi chiêu, tiêu tốn mana) cho một pháp bảo tên là "${name}" thuộc danh mục "${category}" trong thế giới Tiên Hiệp Cyberpunk. Trả về định dạng JSON.`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              lore: { type: Type.STRING },
-              attack: { type: Type.NUMBER },
-              spirit: { type: Type.NUMBER },
-              speed: { type: Type.NUMBER },
-              ability: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  cooldown: { type: Type.STRING },
-                  manaCost: { type: Type.NUMBER }
-                },
-                required: ["name", "description", "cooldown", "manaCost"]
-              }
-            },
-            required: ["lore", "attack", "spirit", "speed", "ability"]
-          }
-        }
-      });
-      
-      console.log("AI Response:", response.text);
-      const data = JSON.parse(response.text);
+      const data = await aiService.generateProductContent(name, category);
+      console.log("AI Response:", data);
       return data;
     } catch (error) {
       console.error("AI Generation failed:", error);
@@ -140,73 +121,15 @@ export default function App() {
   };
 
   const generateKOLAvatar = async (prompt: string, options?: { aspectRatio?: string }) => {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: prompt }] },
-        config: { imageConfig: { aspectRatio: (options?.aspectRatio as any) || "1:1" } },
-      });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Avatar generation failed:", error);
-      return null;
-    }
+    return aiService.generateImage(prompt, options?.aspectRatio as any);
   };
 
   const generateKOLVideo = async (prompt: string) => {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt,
-        config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-      });
-      while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        operation = await ai.operations.getVideosOperation({ operation });
-      }
-      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (downloadLink) {
-        const response = await fetch(downloadLink, {
-          method: 'GET',
-          headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY! },
-        });
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
-      }
-      return null;
-    } catch (error) {
-      console.error("Video generation failed:", error);
-      return null;
-    }
+    return aiService.generateVideo(prompt);
   };
 
   const generateKOLVoice = async (text: string) => {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }],
-        config: {
-          responseModalities: ["AUDIO" as any],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-        },
-      });
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        return `data:audio/wav;base64,${base64Audio}`;
-      }
-      return null;
-    } catch (error) {
-      console.error("Voice generation failed:", error);
-      return null;
-    }
+    return aiService.generateVoice(text);
   };
 
   const scrollToProduct = (index: number) => {
@@ -265,6 +188,7 @@ export default function App() {
         setShowStatsModal={setShowStatsModal}
         setShowCollectionModal={setShowCollectionModal}
         setShowCharacterModal={setShowCharacterModal}
+        setShowKOLModal={setShowKOLModal}
         collectionCount={collection.length}
         connectWallet={connectWallet}
         walletAddress={walletAddress}
@@ -273,6 +197,11 @@ export default function App() {
       />
 
       {/* Modals */}
+      <CreateKOLModal 
+        isOpen={showKOLModal}
+        onClose={() => setShowKOLModal(false)}
+        onAdd={handleAddKOL}
+      />
       <CreateProductModal 
         isOpen={showCreateModal} 
         onClose={() => setShowCreateModal(false)} 

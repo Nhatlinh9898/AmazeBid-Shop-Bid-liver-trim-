@@ -117,12 +117,39 @@ const DetailModal = ({ isOpen, onClose, content, onBuy, isOwned }: DetailModalPr
                     <div className="flex-1 text-center sm:text-left">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                         <h5 className="text-white font-bold text-lg">{content.kolInfo.name}</h5>
-                        <div className="flex items-center justify-center sm:justify-start gap-2">
-                          <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Uy Tín:</span>
-                          <span className="text-sm font-black" style={{ color: content.themeColor }}>{content.kolInfo.reputation}%</span>
+                        <div className="flex items-center justify-center sm:justify-start gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Vai trò:</span>
+                            <span className="text-sm font-black text-cyan-400">{content.kolInfo.role}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Uy Tín:</span>
+                            <span className="text-sm font-black" style={{ color: content.themeColor }}>{content.kolInfo.reputation}%</span>
+                          </div>
                         </div>
                       </div>
                       <p className="text-slate-400 text-sm italic leading-relaxed mb-4">"{content.kolInfo.bio}"</p>
+                      
+                      {/* KOL Skills */}
+                      {content.kolInfo.skills && content.kolInfo.skills.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                          <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Kỹ năng chuyên môn:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {content.kolInfo.skills.map((skill, idx) => (
+                              <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                <div className="flex-1">
+                                  <p className="text-[10px] text-white font-bold">{skill.name}</p>
+                                  <div className="h-0.5 w-full bg-white/5 rounded-full mt-1">
+                                    <div className="h-full bg-cyan-500/50" style={{ width: `${skill.level}%` }} />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                         {content.kolInfo.specialty.map(s => (
                           <span key={s} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/60 uppercase font-black">{s}</span>
